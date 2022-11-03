@@ -1,5 +1,5 @@
 {
-    "input": "samplesheet_1.csv",
+    "input": "samplesheet_main.csv",
     "outdir": "\/mnt\/isilon\/cscb\/Projects\/lexogen\/lee_ji-hyung\/SCTC-JHL-44\/lee_bulkRNA\/processed\/01-corall_processing",
     "email": "arta.seyedian@gmail.com",
     "fasta": "\/mnt\/isilon\/cscb\/genomes\/human\/refdata-gex-GRCh38-2020-A\/fasta\/genome.fa",
