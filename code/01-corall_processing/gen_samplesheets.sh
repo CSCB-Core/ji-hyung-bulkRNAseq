@@ -14,3 +14,13 @@ do
     --strandedness forward; 
 done
 
+# concatenate all samplesheets into one file using a for loop ranging from 1 - 16
+for i in {1..16};
+do
+    # if i > 1, omit first line
+    if [ $i -gt 1 ]; then
+        tail -n +2 samplesheet_$i.csv >> samplesheet_main.csv;
+    else
+        cat samplesheet_$i.csv >> samplesheet_main.csv;
+    fi
+done
