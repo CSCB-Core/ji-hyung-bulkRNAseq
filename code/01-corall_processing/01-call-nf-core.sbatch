@@ -27,7 +27,7 @@ ml Java
 ml singularity
 
 # https://github.com/nf-core/rnaseq/issues/663#issuecomment-868433019
-nextflow run nf-core/rnaseq -r 3.9 -name test_run2_gencode -profile singularity -params-file nf-params.json -c corall.config -resume
+nextflow run nf-core/rnaseq -r 3.9 -name fullrun-attempt2-mouse -profile singularity -params-file nf-params.json -c corall.config -resume
 
 # END TIME
 end_time=$SECONDS
