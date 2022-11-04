@@ -1,9 +1,6 @@
-{
-    "input": "samplesheet_1.csv",
-    "outdir": "\/mnt\/isilon\/cscb\/Projects\/lexogen\/lee_ji-hyung\/SCTC-JHL-44\/lee_bulkRNA\/processed\/01-corall_processing\/run2",
-    "fasta": "\/mnt\/isilon\/cscb\/genomes\/human\/gencode_v42\/GRCh38.primary_assembly.genome.fa",
-    "gtf": "\/mnt\/isilon\/cscb\/genomes\/human\/gencode_v42\/gencode.v42.basic.annotation.gtf",
-    "star_index": "\/mnt\/isilon\/cscb\/genomes\/human\/STAR_Index_hg38",
-    "gencode": true,
-    "star_ignore_sjdbgtf": true
+k{
+    "input": "samplesheet_main.csv",
+    "outdir": "\/mnt\/isilon\/cscb\/Projects\/lexogen\/lee_ji-hyung\/SCTC-JHL-44\/lee_bulkRNA\/processed\/01-corall_processing\/run3",
+    "genome": "GRCm38",
+    "aligner": "star_rsem"
 }
