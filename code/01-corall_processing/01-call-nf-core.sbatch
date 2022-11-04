@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                   # Run a single task
 #SBATCH --cpus-per-task=12            # Number of CPU cores per task
 #SBATCH --mem=200gb                    # Job memory request
-#SBATCH --time=06:00:00              # Time limit hrs:min:sec
+#SBATCH --time=24:00:00              # Time limit hrs:min:sec
 #SBATCH --output=logs/eo_%x_%j.log    # Standard output and error log
 ##SBATCH --array=1-12
 
