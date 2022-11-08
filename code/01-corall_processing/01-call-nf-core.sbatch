@@ -3,8 +3,8 @@
 #SBATCH --nodes=1                    # Run all processes on a single node
 #SBATCH --ntasks=1                   # Run a single task
 #SBATCH --cpus-per-task=12            # Number of CPU cores per task
-#SBATCH --mem=200gb                    # Job memory request
-#SBATCH --time=24:00:00              # Time limit hrs:min:sec
+#SBATCH --mem=100gb                    # Job memory request
+#SBATCH --time=10:00:00              # Time limit hrs:min:sec
 #SBATCH --output=logs/eo_%x_%j.log    # Standard output and error log
 ##SBATCH --array=1-12
 
@@ -27,7 +27,7 @@ ml Java
 ml singularity
 
 # https://github.com/nf-core/rnaseq/issues/663#issuecomment-868433019
-nextflow run nf-core/rnaseq -r 3.9 -name run2_allsamples -profile singularity -params-file nf-params.json -c corall.config -resume
+nextflow run nf-core/rnaseq -r 3.9 -name fullrun-attempt2-mouse -profile singularity -params-file nf-params.json -c corall.config -resume
 
 # END TIME
 end_time=$SECONDS
