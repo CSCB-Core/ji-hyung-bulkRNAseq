@@ -1,6 +1,6 @@
 {
-    "input": "samplesheet_main.csv",
-    "outdir": "\/mnt\/isilon\/cscb\/Projects\/lexogen\/lee_ji-hyung\/SCTC-JHL-44\/lee_bulkRNA\/processed\/01-corall_processing\/run3",
-    "genome": "GRCm38",
-    "aligner": "star_salmon"
+    "input": "\/scr1\/users\/seyediana\/Projects\/lee_bulkRNA\/code\/01-corall_processing\/samplesheet_main.csv",
+    "outdir": "\/scr1\/users\/seyediana\/Projects\/lee_bulkRNA\/processed\/01-corall_processing\/run4",
+    "email": "arta.seyedian@gmail.com",
+    "genome": "GRCm38"
 }
