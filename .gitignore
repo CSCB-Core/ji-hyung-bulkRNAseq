@@ -37,3 +37,4 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+processed/01-corall_processing/run1 processed/01-corall_processing/run2 processed/01-corall_processing/run3
