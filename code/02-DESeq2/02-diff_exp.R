@@ -33,21 +33,6 @@ here::i_am("code/02-DESeq2/02-diff_exp.R")
 
 counts <- list()
 
-bams <- Sys.glob(
-  here(
-    "processed/01-corall_processing/run3/star_rsem/HTS019_*_S*_L001.markdup.sorted.bam"
-  )
-)
-
-for (i in range(1:length(bams))) {
-  counts[[i]] <-
-    featureCounts(
-      files = bams[i],
-      isPairedEnd = TRUE,
-      requireBothEndsMapped = TRUE,
-      nthreads = 4
-    )
-}
 ## Pre-EDA ####
 gene_counts <-
   fread(
@@ -72,7 +57,7 @@ gene_counts <-
 gene_counts$means <- rowMeans(gene_counts[, 3:18])
 
 gene_counts <-
-  gene_counts[order(x = gene_counts$means, decreasing = TRUE), ]
+  gene_counts[order(x = gene_counts$means, decreasing = TRUE),]
 
 # create a metadata table with the column names of the gene_counts table as row names
 metadata <-
@@ -105,7 +90,7 @@ metadata$sample_names <- rownames(metadata)
 pdf(here("processed/02-DESeq2/EDA_Plots.pdf"))
 
 # generate ggplot plot of top 10 genes by mean expression, ignore NAs
-ggplot(gene_counts[1:10, ], aes(x = gene_name, y = means)) +
+ggplot(gene_counts[1:10,], aes(x = gene_name, y = means)) +
   geom_bar(stat = "identity") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   labs(title = "Top 10 genes by mean expression") +
@@ -188,14 +173,11 @@ dds <- DESeqDataSetFromMatrix(
   countData = round(de_gene_counts),
   # negatives?
   colData = metadata,
-  design =  ~ genome * condition,
+  design = ~ 0 + genome:condition,
   tidy = FALSE
 )
 
 dds <- estimateSizeFactors(dds)
-
-sum(apply(counts(dds), 1, function(x)
-  sum(x) < 10))
 
 ## Vis ####
 
@@ -215,18 +197,31 @@ graphics.off()
 ### Extract the rlog matrix from the object
 rld_mat <- assay(rld)
 
+rld_out <- as.data.frame(rld_mat)
+
+colnames(rld_out) <- colnames(dds)
+rownames(rld_out) <- rownames(dds)
+
+write.csv(rld_out, here("processed/02-DESeq2/rlog2_counts_allSamples_JH_RNAseq.csv"))
+
 ### Compute pairwise correlation values
 rld_cor <- cor(rld_mat)    ## cor() is a base R function
 
 pdf(here("processed/02-DESeq2/SampleCorrelationHeatmap.pdf"))
 
 ### Plot heatmap using the correlation matrix and the metadata object
-pheatmap(rld_cor, annotation = metadata)
+pheatmap(
+  rld_cor,
+  annotation = metadata,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  main = "Sample Correlation Heatmap"
+)
 
 graphics.off()
 
 keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
+dds <- dds[keep, ]
 
 dds <- DESeq(dds, quiet = FALSE)
 
@@ -237,94 +232,66 @@ plotDispEsts(dds)
 
 # https://www.bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
 
-## Save the unshrunken results to compare
-
-resultsNames(dds)
-
-res <-
-  results(dds, name = c("condition_condition2_vs_condition1")) # need to modify the base levels in the third arguments here
-
-# Apply fold change shrinkage
-
-
-plotMA(res)
+## Change this up a bit ####
 
 # > resultsNames(dds)
-# [1] "Intercept"                          "genome_KO_vs_WT"                    "condition_condition2_vs_condition1" "genomeKO.conditioncondition2"
+# [1] "genomeWT.conditioncondition1" "genomeKO.conditioncondition1" "genomeWT.conditioncondition2" "genomeKO.conditioncondition2"
 
-res_int <- results(dds, name = c("genomeKO.conditioncondition2"))
+## Contrast condition 1 ####
 
-sum(res_int$padj < 0.1, na.rm = TRUE)
+res_WTvKO_cond1 <-
+  results(dds,
+          contrast = list(
+            "genomeKO.conditioncondition1",
+            "genomeWT.conditioncondition1"
+          ))
 
-png(here(
-  "processed/02-DESeq2/genomeKO.conditioncondition2_plotMA.png"
-))
+res_WTvKO_cond1 <- res_WTvKO_cond1 %>% na.omit()
 
-plotMA(res_int)
+res_WTvKO_cond1 <- res_WTvKO_cond1[order(res_WTvKO_cond1$padj),]
 
-dev.off()
+### Condition 1 plots ####
+# MA plot and volcano plot for each contrast
+pdf(
+  here("processed/02-DESeq2/WTvKO_cond1_DESeq2_plots.pdf"),
+  height = 8,
+  width = 11
+)
 
-res_int_lfcShrink <-
-  lfcShrink(dds, coef = "genomeKO.conditioncondition2", type = "apeglm")
+plotMA(res_WTvKO_cond1)
 
-png(here(
-  "processed/02-DESeq2/genomeKO.conditioncondition2_LFCShrink_plotMA.png"
-))
+p_data_cond1 <- res_WTvKO_cond1 %>% na.omit() %>% as_tibble()
 
-plotMA(res_int_lfcShrink)
+p_data_cond1$sig <- "NS"
 
-dev.off()
+p_data_cond1[p_data_cond1$padj < 0.1, ]$sig <- "A"
 
-res_int_lfcShrink_noNA <- na.omit(res_int_lfcShrink)
+## Volcano plot; color by significance (adjusted p-value)
+ggplot(p_data_cond1, aes(
+  x = log2FoldChange,
+  y = -log10(padj),
+  color = sig
+)) +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  xlab("log2 Fold Change") +
+  ylab("-log10 Adjusted p-value") +
+  ggtitle("Volcano plot of KO vs WT in Condition 1 interaction") +
+  scale_color_manual(values = c("black", "blue"))
 
-res_int_lfcShrink_noNA <-
-  res_int_lfcShrink_noNA[order(res_int_lfcShrink_noNA$padj),]
-
-sum(res_int_lfcShrink_noNA$padj < 0.1)
-
-write.csv(res_int_lfcShrink_noNA, file = "processed/02-DESeq2/genomeKO.conditioncondition2_Interaction_naOmit.csv")
-
-## Plots ####
-p_data <- res_int %>% na.omit() %>% as_tibble()
-
-p_data$sig <- "NS"
-
-p_data[p_data$padj < 0.1, ]$sig <- "A"
-
-# TODO make red into black; keep sig as blue
-# TODO update the title and stuff
-# TODO Save plot
-## Volcano plot
-ggplot(p_data) +
-  geom_point(aes(
-    x = log2FoldChange,
-    y = -log10(padj),
-    colour = sig
-  )) +
-  xlab("log2 fold change") +
-  ylab("-log10 adjusted p-value") +
-  #scale_y_continuous(limits = c(0,50)) +
-  theme(
-    legend.position = "none",
-    plot.title = element_text(size = rel(1.5), hjust = 0.5),
-    axis.title = element_text(size = rel(1.25))
-  )
-
-# TODO do heatmap stuff later
 normalized_counts <- counts(dds, normalized = T) %>%
   data.frame() %>%
   rownames_to_column(var = "gene_name") %>%
-  as_tibble()
+  as_tibble() %>%
+  filter(gene_name %in% rownames(res_WTvKO_cond1)[res_WTvKO_cond1$padj < 0.1])
 
-norm_OEsig <- normalized_counts %>%
-  filter(gene %in% rownames(group1_vs_group2))
-
-### Set a color palette
 heat_colors <- brewer.pal(6, "YlOrRd")
 
 ### Run pheatmap using the metadata data frame for the annotation
 pheatmap(
-  normalized_counts,
+  normalized_counts[, which(metadata$condition == "condition1") + 1],
   color = heat_colors,
   cluster_rows = T,
   show_rownames = F,
@@ -332,60 +299,26 @@ pheatmap(
   border_color = NA,
   fontsize = 10,
   fontsize_row = 10,
-  height = 20
+  height = 20,
+  scale = "row",
+  main = "Heatmap plot of KO vs WT in Condition 1 Interaction"
+) # Row-scaled
+
+plotCounts(dds,
+           gene = which.min(res_WTvKO_cond1$padj),
+           intgroup = "genome")
+
+graphics.off()
+
+write.csv(
+  res_WTvKO_cond1,
+  file = here("processed/02-DESeq2/genomeKOvsWT.conditioncondition1.csv")
 )
-
-group1_vs_group3 <- group1_vs_group3 %>% as_tibble() %>%
-  mutate(group1_vs_group3 = padj < 0.05 &
-           abs(log2FoldChange) >= 0.58)
-
-## Change this up a bit ####
-# model.matrix(~ 1 + genome:condition, metadata)
-
-dds2 <- DESeqDataSetFromMatrix(
-  countData = round(de_gene_counts),
-  # negatives?
-  colData = metadata,
-  design = ~ 0 + genome:condition,
-  tidy = FALSE
-)
-
-keep2 <- rowSums(counts(dds2)) >= 10
-dds2 <- dds2[keep,]
-
-dds2 <- DESeq(dds2, quiet = FALSE)
-
-resultsNames(dds2)
-
-# > resultsNames(dds2)
-# [1] "genomeWT.conditioncondition1" "genomeKO.conditioncondition1" "genomeWT.conditioncondition2" "genomeKO.conditioncondition2"
-
-## Contrast condition 1 ####
-
-res_WTvKO <-
-  results(dds2,
-          contrast = list(
-            "genomeKO.conditioncondition1",
-            "genomeWT.conditioncondition1"
-          ))
-
-res_WTvKO <- res_WTvKO %>% na.omit()
-
-res_WTvKO <- res_WTvKO[order(res_WTvKO$padj), ]
-
-# TODO Do heatmap, MA plot and volcano plot for each contrast
-
-colData(dds2) <- metadata
-
-plotCounts(dds2, gene = which.min(res_WTvKO$padj), intgroup = "genome")
-
-write.csv(res_WTvKO,
-          file = here("processed/02-DESeq2/genomeKOvsWT.conditioncondition1.csv"))
 
 ## Contrast Condition 2 ####
 
 res_WTvKO_cond2 <-
-  results(dds2,
+  results(dds,
           contrast = list(
             "genomeKO.conditioncondition2",
             "genomeWT.conditioncondition2"
@@ -393,24 +326,231 @@ res_WTvKO_cond2 <-
 
 res_WTvKO_cond2 <- res_WTvKO_cond2 %>% na.omit()
 
-res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj), ]
+res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj),]
 
-# TODO Do heatmap, MA plot and volcano plot for each contrast
+### Condition 2 Plots ####
+pdf(
+  here("processed/02-DESeq2/WTvKO_cond2_DESeq2_plots.pdf"),
+  height = 8,
+  width = 11
+)
 
-plotCounts(dds2,
+plotMA(res_WTvKO_cond2)
+
+p_data_cond2 <- res_WTvKO_cond2 %>% na.omit() %>% as_tibble()
+
+p_data_cond2$sig <- "NS"
+
+p_data_cond2[p_data_cond2$padj < 0.1, ]$sig <- "A"
+
+## Volcano plot; color by significance (adjusted p-value)
+ggplot(p_data_cond2, aes(
+  x = log2FoldChange,
+  y = -log10(padj),
+  color = sig
+)) +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  xlab("log2 Fold Change") +
+  ylab("-log10 Adjusted p-value") +
+  ggtitle("Volcano plot of KO vs WT in Condition 2 interaction") +
+  scale_color_manual(values = c("black", "blue"))
+
+normalized_counts <- counts(dds, normalized = T) %>%
+  data.frame() %>%
+  rownames_to_column(var = "gene_name") %>%
+  as_tibble() %>%
+  filter(gene_name %in% rownames(res_WTvKO_cond2)[res_WTvKO_cond2$padj < 0.1])
+
+heat_colors <- brewer.pal(6, "YlOrRd")
+
+### Run pheatmap using the metadata data frame for the annotation
+pheatmap(
+  normalized_counts[, which(metadata$condition == "condition2") + 1],
+  color = heat_colors,
+  cluster_rows = T,
+  show_rownames = F,
+  annotation = metadata,
+  border_color = NA,
+  fontsize = 10,
+  fontsize_row = 10,
+  height = 20,
+  scale = "row",
+  main = "Heatmap plot of KO vs WT in Condition 2 Interaction"
+) # Row-scaled
+
+plotCounts(dds,
            gene = which.min(res_WTvKO_cond2$padj),
            intgroup = "genome")
+
+graphics.off()
 
 write.csv(
   res_WTvKO_cond2,
   file = here("processed/02-DESeq2/genomeKOvsWT.conditioncondition2.csv")
 )
 
+## Custom Constrasts ####
+
+# 1) Group1 vs Group2, 2) Group1 vs Group3, 3) Group 3 vs Group4, and 4) Group 2 vs Group 4.
+# One control, one knockout, one control with 2nd condition and knockout with 2nd condition.
+
+### WT2vsWT1 ####
+res_WT2vsWT1 <-
+  results(dds,
+          contrast = list(
+            "genomeWT.conditioncondition2",
+            "genomeWT.conditioncondition1"
+          ))
+
+res_WT2vsWT1 <- res_WT2vsWT1 %>% na.omit()
+
+res_WT2vsWT1 <- res_WT2vsWT1[order(res_WT2vsWT1$padj),]
+
+pdf(
+  here("processed/02-DESeq2/WT2vsWT1_DESeq2_plots.pdf"),
+  height = 8,
+  width = 11
+)
+
+plotMA(res_WT2vsWT1)
+
+p_data_WT2vWT1 <- res_WT2vsWT1 %>% na.omit() %>% as_tibble()
+
+p_data_WT2vWT1$sig <- "NS"
+
+p_data_WT2vWT1[p_data_WT2vWT1$padj < 0.1, ]$sig <- "A"
+
+## Volcano plot; color by significance (adjusted p-value)
+ggplot(p_data_WT2vWT1, aes(
+  x = log2FoldChange,
+  y = -log10(padj),
+  color = sig
+)) +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  xlab("log2 Fold Change") +
+  ylab("-log10 Adjusted p-value") +
+  ggtitle("Volcano plot of WT in Condition 2 vs WT in Condition 1") +
+  scale_color_manual(values = c("black", "blue"))
+
+normalized_counts <- counts(dds, normalized = T) %>%
+  data.frame() %>%
+  rownames_to_column(var = "gene_name") %>%
+  as_tibble() %>%
+  filter(gene_name %in% rownames(res_WT2vsWT1)[res_WT2vsWT1$padj < 0.1])
+
+heat_colors <- brewer.pal(6, "YlOrRd")
+
+### Run pheatmap using the metadata data frame for the annotation
+pheatmap(
+  normalized_counts[, which(metadata$genome == "WT") + 1],
+  # WT 1 vs WT 2
+  color = heat_colors,
+  cluster_rows = T,
+  show_rownames = F,
+  annotation = metadata,
+  border_color = NA,
+  fontsize = 10,
+  fontsize_row = 10,
+  height = 20,
+  scale = "row",
+  main = "Heatmap plot of KO vs WT in Condition 2 Interaction"
+) # Row-scaled
+
+plotCounts(dds,
+           gene = which.min(res_WT2vsWT1$padj),
+           intgroup = "genome")
+
+graphics.off()
+
+write.csv(res_WT2vsWT1,
+          file = here("processed/02-DESeq2/genomeWT.conditioncondition2vs1.csv"))
+
+## KO2vsKO1 ####
+
+res_KO2vsKO1 <-
+  results(dds,
+          contrast = list(
+            "genomeKO.conditioncondition2",
+            "genomeKO.conditioncondition1"
+          ))
+
+res_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit()
+
+res_KO2vsKO1 <- res_KO2vsKO1[order(res_KO2vsKO1$padj),]
+
+pdf(
+  here("processed/02-DESeq2/KO2vsKO1_DESeq2_plots.pdf"),
+  height = 8,
+  width = 11
+)
+
+plotMA(res_KO2vsKO1)
+
+p_data_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit() %>% as_tibble()
+
+p_data_KO2vsKO1$sig <- "NS"
+
+p_data_KO2vsKO1[p_data_KO2vsKO1$padj < 0.1, ]$sig <- "A"
+
+## Volcano plot; color by significance (adjusted p-value)
+ggplot(p_data_KO2vsKO1, aes(
+  x = log2FoldChange,
+  y = -log10(padj),
+  color = sig
+)) +
+  geom_point() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  xlab("log2 Fold Change") +
+  ylab("-log10 Adjusted p-value") +
+  ggtitle("Volcano plot of KO vs WT in Condition 2 interaction") +
+  scale_color_manual(values = c("black", "blue"))
+
+normalized_counts <- counts(dds, normalized = T) %>%
+  data.frame() %>%
+  rownames_to_column(var = "gene_name") %>%
+  as_tibble() %>%
+  filter(gene_name %in% rownames(res_KO2vsKO1)[res_KO2vsKO1$padj < 0.1])
+
+heat_colors <- brewer.pal(6, "YlOrRd")
+
+### Run pheatmap using the metadata data frame for the annotation
+pheatmap(
+  normalized_counts[, which(metadata$genome == "KO") + 1],
+  # WT 1 vs WT 2
+  color = heat_colors,
+  cluster_rows = T,
+  show_rownames = F,
+  annotation = metadata,
+  border_color = NA,
+  fontsize = 10,
+  fontsize_row = 10,
+  height = 20,
+  scale = "row",
+  main = "Heatmap plot of KO vs WT in Condition 2 Interaction"
+) # Row-scaled
+
+plotCounts(dds,
+           gene = which.min(res_KO2vsKO1$padj),
+           intgroup = "genome")
+
+graphics.off()
+
+write.csv(res_KO2vsKO1,
+          file = here("processed/02-DESeq2/genomeKO.conditioncondition2vs1.csv"))
+
 # PATHWAY ANALYSIS AND GENE SET ENRICHMENT ####
 
 gene_WTvKO_cond2 <-
   rownames(res_WTvKO_cond2)[(res_WTvKO_cond2$padj < 0.1) &
-                              (res_WTvKO_cond2$log2FoldChange > 0)]
+                              (res_WTvKO_cond2$log2FoldChange > 0)] # %>% as.data.table()
 
 rownames(res_WTvKO_cond2)
 
@@ -421,9 +561,20 @@ rownames(res_WTvKO_cond2)
 #   OrgDb = org.Mm.eg.db
 # )
 
+# colnames(gene_WTvKO_cond2) <- "gene_symbol"
+
+gene_WTvKO_cond2_sig_genes_tx <-
+  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2, ]$gene_id
+
+# gene_counts_olaps <- gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2$gene_symbol,]
+
+# gene_counts_olaps[duplicated(gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2$gene_symbol,]$gene_name),]
+
+# gene_counts_olaps[gene_counts_olaps$gene_name== "Arhgap30"]
+
 ego <- enrichGO(
-  gene = gene.df$ENSEMBL,
-  universe = rownames(dds2),
+  gene = gene_WTvKO_cond2_sig_genes_tx,
+  universe = gene_counts$gene_id,
   OrgDb = org.Mm.eg.db,
   keyType = 'ENSEMBL',
   ont = "BP",
