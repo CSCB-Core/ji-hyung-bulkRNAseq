@@ -37,4 +37,13 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
-processed/01-corall_processing/run1 processed/01-corall_processing/run2 processed/01-corall_processing/run3
+processed/01-corall_processing/run1 
+processed/01-corall_processing/run2 
+processed/01-corall_processing/run3 
+processed/01-corall_processing/run4
+*.nextflow*
+nexflow.log*
+.vscode/
+code/01-corall_processing/work/
+code/01-corall_processing/nextflow.log.2
+*zip
