@@ -41,19 +41,6 @@ gene_counts <-
     )
   )
 
-# tx_counts <-
-#   fread(
-#     here(
-#       "processed/01-corall_processing/run3/star_rsem/rsem.merged.transcript_counts.tsv"
-#     )
-#   )
-
-
-# dropping sample 10
-# gene_counts$`HTS019_10_JH133-M_LB_S10_L001` <- NULL
-
-# gene_counts <- as.data.frame(gene_counts)
-
 gene_counts$means <- rowMeans(gene_counts[, 3:18])
 
 gene_counts <-
@@ -202,7 +189,10 @@ rld_out <- as.data.frame(rld_mat)
 colnames(rld_out) <- colnames(dds)
 rownames(rld_out) <- rownames(dds)
 
-write.csv(rld_out, here("processed/02-DESeq2/rlog2_counts_allSamples_JH_RNAseq.csv"))
+write.csv(rld_out,
+          here(
+            "processed/02-DESeq2/rlog2_counts_allSamples_JH_RNAseq.csv"
+          ))
 
 ### Compute pairwise correlation values
 rld_cor <- cor(rld_mat)    ## cor() is a base R function
@@ -301,7 +291,7 @@ pheatmap(
   fontsize_row = 10,
   height = 20,
   scale = "row",
-  main = "Heatmap plot of KO vs WT in Condition 1 Interaction"
+  main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, KO vs WT in Condition 1 Interaction"
 ) # Row-scaled
 
 plotCounts(dds,
@@ -378,7 +368,7 @@ pheatmap(
   fontsize_row = 10,
   height = 20,
   scale = "row",
-  main = "Heatmap plot of KO vs WT in Condition 2 Interaction"
+  main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, KO vs WT in Condition 2 Interaction"
 ) # Row-scaled
 
 plotCounts(dds,
@@ -459,7 +449,7 @@ pheatmap(
   fontsize_row = 10,
   height = 20,
   scale = "row",
-  main = "Heatmap plot of KO vs WT in Condition 2 Interaction"
+  main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, WT 1 vs WT 2 Interaction"
 ) # Row-scaled
 
 plotCounts(dds,
@@ -534,7 +524,7 @@ pheatmap(
   fontsize_row = 10,
   height = 20,
   scale = "row",
-  main = "Heatmap plot of KO vs WT in Condition 2 Interaction"
+  main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, KO 1 vs KO 2 Interaction"
 ) # Row-scaled
 
 plotCounts(dds,
@@ -546,13 +536,28 @@ graphics.off()
 write.csv(res_KO2vsKO1,
           file = here("processed/02-DESeq2/genomeKO.conditioncondition2vs1.csv"))
 
+# save.image(here("preGO_GSEA.RData"))
+
+#----------------------------------------------
 # PATHWAY ANALYSIS AND GENE SET ENRICHMENT ####
+# https://yulab-smu.top/biomedical-knowledge-mining-book/clusterprofiler-go.html#visualize-enriched-go-terms-as-a-directed-acyclic-graph
+
+
+gene_WTvKO_cond1 <-
+  rownames(res_WTvKO_cond1)[(res_WTvKO_cond1$padj < 0.1) &
+                              (res_WTvKO_cond1$log2FoldChange > 0)]
 
 gene_WTvKO_cond2 <-
   rownames(res_WTvKO_cond2)[(res_WTvKO_cond2$padj < 0.1) &
-                              (res_WTvKO_cond2$log2FoldChange > 0)] # %>% as.data.table()
+                              (res_WTvKO_cond2$log2FoldChange > 0)]
 
-rownames(res_WTvKO_cond2)
+gene_KO2vsKO1 <-
+  rownames(res_KO2vsKO1)[(res_KO2vsKO1$padj < 0.1) &
+                           (res_KO2vsKO1$log2FoldChange > 0)]
+
+gene_WT2vsWT1 <-
+  rownames(res_WT2vsWT1)[(res_WT2vsWT1$padj < 0.1) &
+                           (res_WT2vsWT1$log2FoldChange > 0)]
 
 # gene.df <- bitr(
 #   gene_WTvKO_cond2,
@@ -561,18 +566,16 @@ rownames(res_WTvKO_cond2)
 #   OrgDb = org.Mm.eg.db
 # )
 
-# colnames(gene_WTvKO_cond2) <- "gene_symbol"
-
+gene_WTvKO_cond1_sig_genes_tx <-
+  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond1, ]$gene_id
 gene_WTvKO_cond2_sig_genes_tx <-
   gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2, ]$gene_id
+gene_KO2vsKO1_sig_genes_tx <-
+  gene_counts[gene_counts$gene_name %in% gene_KO2vsKO1, ]$gene_id
+gene_WT2vsWT1_sig_genes_tx <-
+  gene_counts[gene_counts$gene_name %in% gene_WT2vsWT1, ]$gene_id
 
-# gene_counts_olaps <- gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2$gene_symbol,]
-
-# gene_counts_olaps[duplicated(gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2$gene_symbol,]$gene_name),]
-
-# gene_counts_olaps[gene_counts_olaps$gene_name== "Arhgap30"]
-
-ego <- enrichGO(
+enrichGO_gene_WTvKO_cond2 <- enrichGO(
   gene = gene_WTvKO_cond2_sig_genes_tx,
   universe = gene_counts$gene_id,
   OrgDb = org.Mm.eg.db,
@@ -583,3 +586,163 @@ ego <- enrichGO(
   qvalueCutoff = 0.1,
   readable = TRUE
 )
+enrichGO_gene_WTvKO_cond1 <- enrichGO(
+  gene = gene_WTvKO_cond1_sig_genes_tx,
+  universe = gene_counts$gene_id,
+  OrgDb = org.Mm.eg.db,
+  keyType = 'ENSEMBL',
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.01,
+  qvalueCutoff = 0.1,
+  readable = TRUE
+)
+enrichGO_gene_KO2vsKO1 <- enrichGO(
+  gene = gene_KO2vsKO1_sig_genes_tx,
+  universe = gene_counts$gene_id,
+  OrgDb = org.Mm.eg.db,
+  keyType = 'ENSEMBL',
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.01,
+  qvalueCutoff = 0.1,
+  readable = TRUE
+)
+enrichGO_gene_WT2vsWT1 <- enrichGO(
+  gene = gene_WT2vsWT1_sig_genes_tx,
+  universe = gene_counts$gene_id,
+  OrgDb = org.Mm.eg.db,
+  keyType = 'ENSEMBL',
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.01,
+  qvalueCutoff = 0.1,
+  readable = TRUE
+)
+
+prepGeneList <- function(DESeq_res, gene_counts, rank = "padj") {
+  geneList <-
+    DESeq_res %>% as.data.frame() %>% rownames_to_column("gene_id")
+  
+  # geneList_res_WTvKO_cond2 <- geneList_res_WTvKO_cond2[geneList_res_WTvKO_cond2$gene_id %in% gene_counts$gene_name,]
+  
+  gene_count_sub <-
+    gene_counts[gene_counts$gene_name %in% geneList$gene_id,][, c("gene_name", "gene_id")] %>% as.data.frame()
+  
+  geneList <-
+    merge(gene_count_sub,
+          geneList,
+          by.x = "gene_name",
+          by.y = "gene_id")
+  
+  if (rank == "padj") {
+    geneList <-
+      geneList[, c("gene_id", "padj")]
+    geneList_input <-
+      geneList$padj
+  } else if (rank == "log2") {
+    geneList <-
+      geneList[, c("gene_id", "log2FoldChange")]
+    geneList_input <-
+      geneList$log2FoldChange
+  }
+  
+  names(geneList_input) <-
+    geneList$gene_id
+  
+  geneList_input <-
+    geneList_input[order(geneList_input, decreasing = TRUE)]
+  
+  return(geneList_input)
+}
+
+geneList_res_WTvKO_cond1_input <-
+  prepGeneList(res_WTvKO_cond1, gene_counts, rank = "log2")
+geneList_res_WTvKO_cond2_input <-
+  prepGeneList(res_WTvKO_cond2, gene_counts)
+geneList_res_WT2vsWT1_input <-
+  prepGeneList(res_WT2vsWT1, gene_counts)
+geneList_res_KO2vsKO1_input <-
+  prepGeneList(res_KO2vsKO1, gene_counts)
+
+
+gsea_gene_WTvKO_cond1_sig_genes_tx <- gseGO(
+  geneList     = geneList_res_WTvKO_cond1_input,
+  OrgDb        = org.Mm.eg.db,
+  keyType = "ENSEMBL",
+  pAdjustMethod = "BH",
+  ont = "BP",
+  minGSSize    = 100,
+  maxGSSize    = 500,
+  pvalueCutoff = 0.10,
+  verbose      = TRUE
+)
+
+gsea_gene_WTvKO_cond2_sig_genes_tx <- gseGO(
+  geneList     = geneList_res_WTvKO_cond2_input,
+  OrgDb        = org.Mm.eg.db,
+  keyType = "ENSEMBL",
+  pAdjustMethod = "BH",
+  ont = "BP",
+  minGSSize    = 100,
+  maxGSSize    = 500,
+  pvalueCutoff = 0.10,
+  verbose      = TRUE
+)
+
+gsea_gene_WT2vsWT1_sig_genes_tx <- gseGO(
+  geneList     = geneList_res_WT2vsWT1_input,
+  OrgDb        = org.Mm.eg.db,
+  keyType = "ENSEMBL",
+  pAdjustMethod = "BH",
+  ont = "BP",
+  minGSSize    = 100,
+  maxGSSize    = 500,
+  pvalueCutoff = 0.10,
+  verbose      = TRUE
+)
+
+gsea_gene_KO2vsKO1_sig_genes_tx <- gseGO(
+  geneList     = geneList_res_KO2vsKO1_input,
+  OrgDb        = org.Mm.eg.db,
+  keyType = "ENSEMBL",
+  pAdjustMethod = "BH",
+  ont = "BP",
+  minGSSize    = 100,
+  maxGSSize    = 500,
+  pvalueCutoff = 0.10,
+  verbose      = TRUE
+)
+
+
+pdf(
+  here(
+    "processed/02-DESeq2/GO_Enrichment_Overrrepresentation.pdf"
+  ),
+  height = 16,
+  width = 22
+)
+
+goplot(enrichGO_gene_WTvKO_cond1)
+goplot(enrichGO_gene_WTvKO_cond2)
+goplot(enrichGO_gene_KO2vsKO1)
+goplot(enrichGO_gene_WT2vsWT1)
+
+graphics.off()
+
+pdf(
+  here(
+    "processed/02-DESeq2/GO_GSEA_Pathways.pdf"
+  ),
+  height = 16,
+  width = 22
+)
+
+goplot(gsea_gene_WTvKO_cond1_sig_genes_tx)
+goplot(gsea_gene_WTvKO_cond2_sig_genes_tx)
+goplot(gsea_gene_WT2vsWT1_sig_genes_tx) # NA
+goplot(gsea_gene_KO2vsKO1_sig_genes_tx) # NA
+
+graphics.off()
+
+## KEGG ####
