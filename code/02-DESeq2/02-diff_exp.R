@@ -44,7 +44,7 @@ gene_counts <-
 gene_counts$means <- rowMeans(gene_counts[, 3:18])
 
 gene_counts <-
-  gene_counts[order(x = gene_counts$means, decreasing = TRUE), ]
+  gene_counts[order(x = gene_counts$means, decreasing = TRUE),]
 
 # create a metadata table with the column names of the gene_counts table as row names
 metadata <-
@@ -75,7 +75,7 @@ metadata$sample_names <- rownames(metadata)
 # removing all of the SYMBOLS that did not have a corresponding Ensembl ID
 
 # pdf(here("processed/02-DESeq2/EDA_Plots.pdf"))
-# 
+#
 # # generate ggplot plot of top 10 genes by mean expression, ignore NAs
 # ggplot(gene_counts[1:10, ], aes(x = gene_name, y = means)) +
 #   geom_bar(stat = "identity") +
@@ -83,15 +83,15 @@ metadata$sample_names <- rownames(metadata)
 #   labs(title = "Top 10 genes by mean expression") +
 #   xlab("Gene") +
 #   ylab("Mean expression")
-# 
+#
 # ## EDA ####
-# 
+#
 # ggplot(gene_counts) +
 #   geom_histogram(aes(x = means), stat = "bin", bins = 200) +
 #   xlab("Raw expression counts") +
 #   ylab("Number of genes") +
 #   labs(title = "Distribution of mean raw expression counts")
-# 
+#
 # # show the same plot but with a log scale on the x-axis
 # ggplot(gene_counts) +
 #   geom_histogram(aes(x = means), stat = "bin", bins = 200) +
@@ -99,13 +99,13 @@ metadata$sample_names <- rownames(metadata)
 #   ylab("Log-transformed number of genes") +
 #   labs(title = "Distribution of mean raw expression counts") +
 #   scale_y_log10()
-# 
+#
 # ## Mean vs Variance ####
 # mean_counts <-
 #   apply(gene_counts[, 3:18], 1, mean)        #The second argument '1' of 'apply' function indicates the function being applied to rows. Use '2' if applied to columns
 # variance_counts <- apply(gene_counts[, 3:17], 1, var)
 # df <- data.frame(mean_counts, variance_counts)
-# 
+#
 # ggplot(df) +
 #   geom_point(aes(x = mean_counts, y = variance_counts)) +
 #   scale_y_log10(limits = c(1, 1e9)) +
@@ -116,7 +116,7 @@ metadata$sample_names <- rownames(metadata)
 #   labs(title = "Mean vs Variance") +
 #   xlab("Mean") +
 #   ylab("Variance")
-# 
+#
 # graphics.off()
 
 # https://lashlock.github.io/compbio/R_presentation.html
@@ -197,9 +197,11 @@ write.csv(rld_out,
 ### Compute pairwise correlation values
 rld_cor <- cor(rld_mat)    ## cor() is a base R function
 
-pdf(here("processed/02-DESeq2/SampleCorrelationHeatmap.pdf"),
-    height = 8,
-    width = 11)
+pdf(
+  here("processed/02-DESeq2/SampleCorrelationHeatmap.pdf"),
+  height = 8,
+  width = 11
+)
 
 ### Plot heatmap using the correlation matrix and the metadata object
 pheatmap(
@@ -213,7 +215,7 @@ pheatmap(
 graphics.off()
 
 keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
+dds <- dds[keep, ]
 
 dds <- DESeq(dds, quiet = FALSE)
 
@@ -240,7 +242,7 @@ res_WTvKO_cond1 <-
 
 res_WTvKO_cond1 <- res_WTvKO_cond1 %>% na.omit()
 
-res_WTvKO_cond1 <- res_WTvKO_cond1[order(res_WTvKO_cond1$padj), ]
+res_WTvKO_cond1 <- res_WTvKO_cond1[order(res_WTvKO_cond1$padj),]
 
 ### Condition 1 plots ####
 # MA plot and volcano plot for each contrast
@@ -256,7 +258,7 @@ p_data_cond1 <- res_WTvKO_cond1 %>% na.omit() %>% as_tibble()
 
 p_data_cond1$sig <- "NS"
 
-p_data_cond1[p_data_cond1$padj < 0.1,]$sig <- "A"
+p_data_cond1[p_data_cond1$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_cond1, aes(
@@ -318,7 +320,7 @@ res_WTvKO_cond2 <-
 
 res_WTvKO_cond2 <- res_WTvKO_cond2 %>% na.omit()
 
-res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj), ]
+res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj),]
 
 ### Condition 2 Plots ####
 pdf(
@@ -333,7 +335,7 @@ p_data_cond2 <- res_WTvKO_cond2 %>% na.omit() %>% as_tibble()
 
 p_data_cond2$sig <- "NS"
 
-p_data_cond2[p_data_cond2$padj < 0.1,]$sig <- "A"
+p_data_cond2[p_data_cond2$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_cond2, aes(
@@ -399,7 +401,7 @@ res_WT2vsWT1 <-
 
 res_WT2vsWT1 <- res_WT2vsWT1 %>% na.omit()
 
-res_WT2vsWT1 <- res_WT2vsWT1[order(res_WT2vsWT1$padj), ]
+res_WT2vsWT1 <- res_WT2vsWT1[order(res_WT2vsWT1$padj),]
 
 pdf(
   here("processed/02-DESeq2/WT2vsWT1_DESeq2_plots.pdf"),
@@ -413,7 +415,7 @@ p_data_WT2vWT1 <- res_WT2vsWT1 %>% na.omit() %>% as_tibble()
 
 p_data_WT2vWT1$sig <- "NS"
 
-p_data_WT2vWT1[p_data_WT2vWT1$padj < 0.1,]$sig <- "A"
+p_data_WT2vWT1[p_data_WT2vWT1$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_WT2vWT1, aes(
@@ -474,7 +476,7 @@ res_KO2vsKO1 <-
 
 res_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit()
 
-res_KO2vsKO1 <- res_KO2vsKO1[order(res_KO2vsKO1$padj), ]
+res_KO2vsKO1 <- res_KO2vsKO1[order(res_KO2vsKO1$padj),]
 
 pdf(
   here("processed/02-DESeq2/KO2vsKO1_DESeq2_plots.pdf"),
@@ -488,7 +490,7 @@ p_data_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit() %>% as_tibble()
 
 p_data_KO2vsKO1$sig <- "NS"
 
-p_data_KO2vsKO1[p_data_KO2vsKO1$padj < 0.1,]$sig <- "A"
+p_data_KO2vsKO1[p_data_KO2vsKO1$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_KO2vsKO1, aes(
@@ -562,13 +564,13 @@ gene_WT2vsWT1 <-
                            (res_WT2vsWT1$log2FoldChange > 0)]
 
 gene_WTvKO_cond1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond1,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond1, ]$gene_id
 gene_WTvKO_cond2_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2, ]$gene_id
 gene_KO2vsKO1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_KO2vsKO1,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_KO2vsKO1, ]$gene_id
 gene_WT2vsWT1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WT2vsWT1,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_WT2vsWT1, ]$gene_id
 
 enrichGO_gene_WTvKO_cond2 <- enrichGO(
   gene = gene_WTvKO_cond2_sig_genes_tx,
@@ -622,7 +624,7 @@ prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
   # geneList_res_WTvKO_cond2 <- geneList_res_WTvKO_cond2[geneList_res_WTvKO_cond2$gene_id %in% gene_counts$gene_name,]
   
   gene_count_sub <-
-    gene_counts[gene_counts$gene_name %in% geneList$gene_id, ][, c("gene_name", "gene_id")] %>% as.data.frame()
+    gene_counts[gene_counts$gene_name %in% geneList$gene_id,][, c("gene_name", "gene_id")] %>% as.data.frame()
   
   geneList <-
     merge(gene_count_sub,
@@ -711,15 +713,17 @@ gsea_gene_KO2vsKO1_sig_genes_tx <- gseGO(
 
 # https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/
 
-pdf(
-  here("processed/02-DESeq2/GO_ORA-GSEA.pdf"),
-  height = 8,
-  width = 11
+pdf(here("processed/02-DESeq2/GO_ORA-GSEA.pdf"),
+    height = 8,
+    width = 11)
+
+
+barplot(enrichGO_gene_WTvKO_cond1) + ggtitle(
+  "Bar Plot of Top ORA Gene Ontologies in WT vs KO Condition 1 Differential Expression Analysis"
 )
-
-
-barplot(enrichGO_gene_WTvKO_cond1) + ggtitle("Bar Plot of Top ORA Gene Ontologies in WT vs KO Condition 1 Differential Expression Analysis")
-barplot(enrichGO_gene_WTvKO_cond2) + ggtitle("Bar Plot of Top ORA Gene Ontologies in WT vs KO Condition 2 Differential Expression Analysis")
+barplot(enrichGO_gene_WTvKO_cond2) + ggtitle(
+  "Bar Plot of Top ORA Gene Ontologies in WT vs KO Condition 2 Differential Expression Analysis"
+)
 barplot(enrichGO_gene_WT2vsWT1) + ggtitle(
   "Bar Plot of Top ORA Gene Ontologies in WT Condition 1 vs WT Condition 2 Differential Expression Analysis"
 )
@@ -737,7 +741,7 @@ dotplot(gsea_gene_KO2vsKO1_sig_genes_tx) + ggtitle(
 )
 
 # emapplot(gsea_gene_WTvKO_cond1_sig_genes_tx, showCategory = 10)
-# 
+#
 # cnetplot(gsea_gene_WTvKO_cond1_sig_genes_tx, categorySize="pvalue", foldChange=geneList_res_WTvKO_cond1_input, showCategory = 5)
 
 
@@ -745,33 +749,51 @@ graphics.off()
 
 ## KEGG ####
 
-library(pathview)
-
-
-# stuff <- geneList_res_WTvKO_cond1_input
-# names(geneList_res_WTvKO_cond1_input) <- stuff
-
-# gene_WTvKO_cond1
-# gene_WTvKO_cond2
-# gene_KO2vsKO1
-# gene_WT2vsWT1
-#
-
-
 KEGG_IDs_WTvKO1 <-
   bitr(
     names(geneList_res_WTvKO_cond1_input)[abs(geneList_res_WTvKO_cond1_input) > 1],
+    # keep only logFC > 1
     fromType = 'ENSEMBL',
     toType = 'ENTREZID',
     OrgDb = org.Mm.eg.db
     # organism = "mmu"
   )
 
+KEGG_IDs_WTvKO2 <-
+  bitr(
+    names(geneList_res_WTvKO_cond2_input)[abs(geneList_res_WTvKO_cond2_input) > 1],
+    # keep only logFC > 1
+    fromType = 'ENSEMBL',
+    toType = 'ENTREZID',
+    OrgDb = org.Mm.eg.db
+    # organism = "mmu"
+  )
+
+KEGG_IDs_WT2vWT1 <-
+  bitr(
+    names(geneList_res_WT2vsWT1_input)[abs(geneList_res_WT2vsWT1_input) > 1],
+    # keep only logFC > 1
+    fromType = 'ENSEMBL',
+    toType = 'ENTREZID',
+    OrgDb = org.Mm.eg.db
+    # organism = "mmu"
+  )
+
+KEGG_IDs_KO2vsKO1 <-
+  bitr(
+    names(geneList_res_KO2vsKO1_input)[abs(geneList_res_KO2vsKO1_input) > 1],
+    # keep only logFC > 1
+    fromType = 'ENSEMBL',
+    toType = 'ENTREZID',
+    OrgDb = org.Mm.eg.db
+    # organism = "mmu"
+  )
 
 # geneList_res_WTvKO_cond2 <- geneList_res_WTvKO_cond2[geneList_res_WTvKO_cond2$gene_id %in% gene_counts$gene_name,]
 
+### WTvsKO1 ####
 KEGG_IDs_WTvKO1 <-
-  KEGG_IDs_WTvKO1[KEGG_IDs_WTvKO1$ENSEMBL %in% names(geneList_res_WTvKO_cond1_input), ]
+  KEGG_IDs_WTvKO1[KEGG_IDs_WTvKO1$ENSEMBL %in% names(geneList_res_WTvKO_cond1_input),]
 
 geneList_res_WTvKO_cond1_input_df <-
   geneList_res_WTvKO_cond1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
@@ -781,31 +803,164 @@ geneList_res_WTvKO_cond1_input_df <-
         geneList_res_WTvKO_cond1_input_df,
         by = "ENSEMBL")
 
-colnames(geneList_res_WTvKO_cond1_input_df)[3] <- c("log2FoldChange")
+colnames(geneList_res_WTvKO_cond1_input_df)[3] <-
+  c("log2FoldChange")
 
 geneList_res_WTvKO_cond1_input_df_input <-
   geneList_res_WTvKO_cond1_input_df$log2FoldChange
 
 
 names(geneList_res_WTvKO_cond1_input_df_input) <-
-    geneList_res_WTvKO_cond1_input_df$ENTREZID
+  geneList_res_WTvKO_cond1_input_df$ENTREZID
 
 geneList_res_WTvKO_cond1_input_df_input <-
   geneList_res_WTvKO_cond1_input_df_input[order(geneList_res_WTvKO_cond1_input_df_input, decreasing = TRUE)]
 
-kk <- enrichKEGG(gene         = KEGG_IDs_WTvKO1$ENTREZID,
-                 organism     = 'mmu',
-                 pvalueCutoff = 0.10)
+gseKEGG_WTvKO_cond1 <-
+  gseKEGG(
+    geneList     = geneList_res_WTvKO_cond1_input_df_input,
+    organism     = 'mmu',
+    # minGSSize    = 120,
+    pvalueCutoff = 0.10,
+    verbose      = TRUE
+  )
 
-kk2 <- gseKEGG(geneList     = geneList_res_WTvKO_cond1_input_df_input,
-               organism     = 'mmu',
-               minGSSize    = 120,
-               pvalueCutoff = 0.10,
-               verbose      = TRUE)
+### WTvsKO2 ####
+
+KEGG_IDs_WTvKO2 <-
+  KEGG_IDs_WTvKO2[KEGG_IDs_WTvKO2$ENSEMBL %in% names(geneList_res_WTvKO_cond2_input),]
+
+geneList_res_WTvKO_cond2_input_df <-
+  geneList_res_WTvKO_cond2_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
+
+geneList_res_WTvKO_cond2_input_df <-
+  merge(KEGG_IDs_WTvKO2,
+        geneList_res_WTvKO_cond2_input_df,
+        by = "ENSEMBL")
+
+colnames(geneList_res_WTvKO_cond2_input_df)[3] <-
+  c("log2FoldChange")
+
+geneList_res_WTvKO_cond2_input_df_input <-
+  geneList_res_WTvKO_cond2_input_df$log2FoldChange
+
+names(geneList_res_WTvKO_cond2_input_df_input) <-
+  geneList_res_WTvKO_cond2_input_df$ENTREZID
+
+geneList_res_WTvKO_cond2_input_df_input <-
+  geneList_res_WTvKO_cond2_input_df_input[order(geneList_res_WTvKO_cond2_input_df_input, decreasing = TRUE)]
+
+gseKEGG_WTvKO_cond2 <-
+  gseKEGG(
+    geneList     = geneList_res_WTvKO_cond2_input_df_input,
+    organism     = 'mmu',
+    # minGSSize    = 120,
+    pvalueCutoff = 0.10,
+    verbose      = TRUE
+  )
 
 
-browseKEGG(kk, pathID = "mmu05171")
 
 
+### WT1vsWT2 ####
 
+KEGG_IDs_WT2vWT1 <-
+  KEGG_IDs_WT2vWT1[KEGG_IDs_WT2vWT1$ENSEMBL %in% names(geneList_res_WT2vsWT1_input),]
+
+geneList_res_WT2vsWT1_input_df <-
+  geneList_res_WT2vsWT1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
+
+geneList_res_WT2vsWT1_input_df <-
+  merge(KEGG_IDs_WT2vWT1,
+        geneList_res_WT2vsWT1_input_df,
+        by = "ENSEMBL")
+
+colnames(geneList_res_WT2vsWT1_input_df)[3] <- c("log2FoldChange")
+
+geneList_res_WT2vsWT1_input_df_input <-
+  geneList_res_WT2vsWT1_input_df$log2FoldChange
+
+names(geneList_res_WT2vsWT1_input_df_input) <-
+  geneList_res_WT2vsWT1_input_df$ENTREZID
+
+geneList_res_WT2vsWT1_input_df_input <-
+  geneList_res_WT2vsWT1_input_df_input[order(geneList_res_WT2vsWT1_input_df_input, decreasing = TRUE)]
+
+gseKEGG_WT2vsWT1 <-
+  gseKEGG(
+    geneList     = geneList_res_WT2vsWT1_input_df_input,
+    organism     = 'mmu',
+    # minGSSize    = 120,
+    pvalueCutoff = 0.10,
+    verbose      = TRUE
+  )
+
+### KO1vsKO2 ####
+
+KEGG_IDs_KO2vsKO1 <-
+  KEGG_IDs_KO2vsKO1[KEGG_IDs_KO1vsKO2$ENSEMBL %in% names(geneList_res_KO2vsKO1_input),]
+
+geneList_res_KO2vsKO1_input_df <-
+  geneList_res_KO2vsKO1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
+
+geneList_res_KO2vsKO1_input_df <-
+  merge(KEGG_IDs_KO2vsKO1,
+        geneList_res_KO2vsKO1_input_df,
+        by = "ENSEMBL")
+
+colnames(geneList_res_KO2vsKO1_input_df)[3] <- c("log2FoldChange")
+
+geneList_res_KO2vsKO1_input_df_input <-
+  geneList_res_KO2vsKO1_input_df$log2FoldChange
+
+names(geneList_res_KO2vsKO1_input_df_input) <-
+  geneList_res_KO2vsKO1_input_df$ENTREZID
+
+geneList_res_KO2vsKO1_input_df_input <-
+  geneList_res_KO2vsKO1_input_df_input[order(geneList_res_KO2vsKO1_input_df_input, decreasing = TRUE)]
+
+gseKEGG_KO2vsKO1 <-
+  gseKEGG(
+    geneList     = geneList_res_KO2vsKO1_input_df_input,
+    organism     = 'mmu',
+    # minGSSize    = 120,
+    pvalueCutoff = 0.10,
+    verbose      = TRUE
+  )
+
+### KEGG Plots ####
+
+pdf(here("processed/02-DESeq2/KEGG-GSEA.pdf"),
+    height = 8,
+    width = 11)
+
+dotplot(
+  gseKEGG_WTvKO_cond1,
+  showCategory = 10,
+  title = "Enriched Pathways" ,
+  split = ".sign"
+) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in WT vs KO Condition 1 Differential Expression Analysis")
+
+dotplot(
+  gseKEGG_WTvKO_cond2,
+  showCategory = 10,
+  title = "Enriched Pathways" ,
+  split = ".sign"
+) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in WT vs KO Condition 2 Differential Expression Analysis") # NO Enrichment Terms Found
+
+dotplot(
+  gseKEGG_WT2vsWT1,
+  showCategory = 10,
+  title = "Enriched Pathways" ,
+  split = ".sign"
+) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in WT 2 vs WT 1 Differential Expression Analysis")
+
+dotplot(
+  gseKEGG_KO2vsKO1,
+  showCategory = 10,
+  title = "Enriched Pathways" ,
+  split = ".sign"
+) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in KO 2 vs KO 1 Differential Expression Analysis")
+
+graphics.off()
 
