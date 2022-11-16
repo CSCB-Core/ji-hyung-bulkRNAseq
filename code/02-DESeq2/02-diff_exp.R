@@ -719,25 +719,25 @@ pdf(here("processed/02-DESeq2/GO_ORA-GSEA.pdf"),
 
 
 barplot(enrichGO_gene_WTvKO_cond1) + ggtitle(
-  "Bar Plot of Top ORA Gene Ontologies in WT vs KO Condition 1 Differential Expression Analysis"
+  "Bar Plot of Top ORA Gene Ontologies in KO vs WT Condition 1 Differential Expression Analysis"
 )
 barplot(enrichGO_gene_WTvKO_cond2) + ggtitle(
-  "Bar Plot of Top ORA Gene Ontologies in WT vs KO Condition 2 Differential Expression Analysis"
+  "Bar Plot of Top ORA Gene Ontologies in KO vs WT Condition 2 Differential Expression Analysis"
 )
 barplot(enrichGO_gene_WT2vsWT1) + ggtitle(
-  "Bar Plot of Top ORA Gene Ontologies in WT Condition 1 vs WT Condition 2 Differential Expression Analysis"
+  "Bar Plot of Top ORA Gene Ontologies in WT Condition 2 vs WT Condition 1 Differential Expression Analysis"
 )
 barplot(enrichGO_gene_KO2vsKO1) + ggtitle(
-  "Bar Plot of Top ORA Gene Ontologies in KO Condition 1 vs KO Condition 2 Differential Expression Analysis"
+  "Bar Plot of Top ORA Gene Ontologies in KO Condition 2 vs KO Condition 1 Differential Expression Analysis"
 )
 
-dotplot(gsea_gene_WTvKO_cond1_sig_genes_tx) + ggtitle("Dot Plot of Top GO GSEA Gene Sets in WT vs KO Condition 1 Differential Expression Analysis")
-dotplot(gsea_gene_WTvKO_cond2_sig_genes_tx) + ggtitle("Dot Plot of Top GO GSEA Gene Sets in WT vs KO Condition 2 Differential Expression Analysis")
+dotplot(gsea_gene_WTvKO_cond1_sig_genes_tx) + ggtitle("Dot Plot of Top GO GSEA Gene Sets in KO vs WT Condition 1 Differential Expression Analysis")
+dotplot(gsea_gene_WTvKO_cond2_sig_genes_tx) + ggtitle("Dot Plot of Top GO GSEA Gene Sets in KO vs WT Condition 2 Differential Expression Analysis")
 dotplot(gsea_gene_WT2vsWT1_sig_genes_tx) + ggtitle(
-  "Dot Plot of Top GO GSEA Gene Sets in WT Condition 1 vs WT Condition 2 Differential Expression Analysis"
+  "Dot Plot of Top GO GSEA Gene Sets in WT Condition 2 vs WT Condition 1 Differential Expression Analysis"
 )
 dotplot(gsea_gene_KO2vsKO1_sig_genes_tx) + ggtitle(
-  "Dot Plot of Top GO GSEA Gene Sets in KO Condition 1 vs WT Condition 2 Differential Expression Analysis"
+  "Dot Plot of Top GO GSEA Gene Sets in KO Condition 2 vs WT Condition 1 Differential Expression Analysis"
 )
 
 # emapplot(gsea_gene_WTvKO_cond1_sig_genes_tx, showCategory = 10)
@@ -939,14 +939,14 @@ dotplot(
   showCategory = 10,
   title = "Enriched Pathways" ,
   split = ".sign"
-) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in WT vs KO Condition 1 Differential Expression Analysis")
+) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in KO vs WT Condition 1 Differential Expression Analysis")
 
 dotplot(
   gseKEGG_WTvKO_cond2,
   showCategory = 10,
   title = "Enriched Pathways" ,
   split = ".sign"
-) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in WT vs KO Condition 2 Differential Expression Analysis") # NO Enrichment Terms Found
+) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in KO vs WT Condition 2 Differential Expression Analysis") # NO Enrichment Terms Found
 
 dotplot(
   gseKEGG_WT2vsWT1,
