@@ -41,11 +41,6 @@ gene_counts <-
     )
   )
 
-gene_counts$means <- rowMeans(gene_counts[, 3:18])
-
-gene_counts <-
-  gene_counts[order(x = gene_counts$means, decreasing = TRUE), ]
-
 # create a metadata table with the column names of the gene_counts table as row names
 metadata <-
   data.frame(row.names = colnames(gene_counts[, 3:18]))
@@ -83,6 +78,11 @@ column_sums <-
     sum(x > 0))
 
 gene_counts %>% select_if(is.numeric) %>% colSums
+
+gene_counts$means <- rowMeans(gene_counts[, 3:17])
+
+gene_counts <-
+  gene_counts[order(x = gene_counts$means, decreasing = TRUE), ]
 
 de_gene_counts <- gene_counts[, 3:17] %>% as.matrix()
 
