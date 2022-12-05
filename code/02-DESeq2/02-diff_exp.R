@@ -41,6 +41,14 @@ gene_counts <-
     )
   )
 
+# > gene_counts[gene_counts$gene_name == "Tinf2",]
+# gene_id gene_name HTS019_01_JH135.M_LU_S1_L001 HTS019_02_JH135.M_LB_S2_L001 HTS019_03_JH135.M_RU_S3_L001 HTS019_04_JH140.M_LB_S4_L001 HTS019_05_JH134.M_LU_S5_L001
+# 1: ENSMUSG00000007589     Tinf2                           26                           17                            5                           11                           11
+# HTS019_06_JH134.M_LB_S6_L001 HTS019_07_JH134.M_LR_S7_L001 HTS019_08_JH139.M_LU_S8_L001 HTS019_09_JH133.M_LU_S9_L001 HTS019_10_JH133.M_LB_S10_L001 HTS019_11_JH140.M_LU_S11_L001
+# 1:                            3                           20                            7                       13.004                             6                         9.212
+# HTS019_12_JH140.M_RU_S12_L001 HTS019_13_JH133.M_RU_S13_L001 HTS019_14_JH133.M_RB_S14_L001 HTS019_15_JH139.M_LB_S15_L001 HTS019_16_JH139.M_RU_S16_L001
+# 1:                            15                             7                             3                             7                             3
+
 # create a metadata table with the column names of the gene_counts table as row names
 metadata <-
   data.frame(row.names = colnames(gene_counts[, 3:18]))
@@ -67,11 +75,10 @@ metadata$group <- c(
 
 metadata$sample_names <- rownames(metadata)
 
-
 ## REMOVE SAMPLE 15
-gene_counts <- gene_counts[, !"HTS019_15_JH139.M_LB_S15_L001"]
+gene_counts <- gene_counts[,!"HTS019_15_JH139.M_LB_S15_L001"]
 
-metadata <- metadata[-15, ]
+metadata <- metadata[-15,]
 
 column_sums <-
   apply(gene_counts[, 3:ncol(gene_counts)], 2, function(x)
@@ -82,7 +89,7 @@ gene_counts %>% select_if(is.numeric) %>% colSums
 gene_counts$means <- rowMeans(gene_counts[, 3:17])
 
 gene_counts <-
-  gene_counts[order(x = gene_counts$means, decreasing = TRUE), ]
+  gene_counts[order(x = gene_counts$means, decreasing = TRUE),]
 
 de_gene_counts <- gene_counts[, 3:17] %>% as.matrix()
 
@@ -140,6 +147,7 @@ rld_out <- as.data.frame(rld_mat)
 colnames(rld_out) <- colnames(dds)
 rownames(rld_out) <- rownames(dds)
 
+#Tinf2 present
 write.csv(rld_out,
           here(
             "processed/02-DESeq2/rlog2_counts_allSamples_JH_RNAseq.csv"
@@ -149,7 +157,9 @@ write.csv(rld_out,
 rld_cor <- cor(rld_mat)    ## cor() is a base R function
 
 pdf(
-  here("processed/02-DESeq2/SampleCorrelationHeatmap.pdf"),
+  here(
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/SampleCorrelationHeatmap.pdf"
+  ),
   height = 8,
   width = 11
 )
@@ -163,10 +173,34 @@ pheatmap(
   main = "Sample Correlation Heatmap"
 )
 
+pheatmap(
+  rld_cor[1:8, 1:8],
+  annotation = metadata,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  main = "Sample Correlation Heatmap, Condition 1"
+)
+
+pheatmap(
+  rld_cor[9:15, 9:15],
+  annotation = metadata,
+  cluster_rows = FALSE,
+  cluster_cols = FALSE,
+  main = "Sample Correlation Heatmap, Condition 2"
+)
+
 graphics.off()
 
 keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
+dds <- dds[keep, ]
+
+# > counts(dds[rownames(dds) == "Tinf2",])
+# HTS019_01_JH135.M_LU_S1_L001 HTS019_02_JH135.M_LB_S2_L001 HTS019_03_JH135.M_RU_S3_L001 HTS019_04_JH140.M_LB_S4_L001 HTS019_05_JH134.M_LU_S5_L001 HTS019_06_JH134.M_LB_S6_L001
+# Tinf2                           26                           17                            5                           11                           11                            3
+# HTS019_07_JH134.M_LR_S7_L001 HTS019_08_JH139.M_LU_S8_L001 HTS019_09_JH133.M_LU_S9_L001 HTS019_10_JH133.M_LB_S10_L001 HTS019_11_JH140.M_LU_S11_L001 HTS019_12_JH140.M_RU_S12_L001
+# Tinf2                           20                            7                           13                             6                             9                            15
+# HTS019_13_JH133.M_RU_S13_L001 HTS019_14_JH133.M_RB_S14_L001 HTS019_16_JH139.M_RU_S16_L001
+# Tinf2                             7                             3                             3
 
 dds <- DESeq(dds, quiet = FALSE)
 
@@ -191,14 +225,23 @@ res_WTvKO_cond1 <-
             "genomeWT.conditioncondition1"
           ))
 
+write.csv(
+  res_WTvKO_cond1,
+  file = here(
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKOvsWT.conditioncondition1_sans15.csv"
+  )
+)
+
 res_WTvKO_cond1 <- res_WTvKO_cond1 %>% na.omit()
 
-res_WTvKO_cond1 <- res_WTvKO_cond1[order(res_WTvKO_cond1$padj), ]
+res_WTvKO_cond1 <- res_WTvKO_cond1[order(res_WTvKO_cond1$padj),]
 
 ### Condition 1 plots ####
 # MA plot and volcano plot for each contrast
 pdf(
-  here("processed/02-DESeq2/KOvsWT_cond1_DESeq2_plots.pdf"),
+  here(
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/KOvsWT_cond1_DESeq2_plots.pdf"
+  ),
   height = 8,
   width = 11
 )
@@ -209,7 +252,7 @@ p_data_cond1 <- res_WTvKO_cond1 %>% na.omit() %>% as_tibble()
 
 p_data_cond1$sig <- "NS"
 
-p_data_cond1[p_data_cond1$padj < 0.1,]$sig <- "A"
+p_data_cond1[p_data_cond1$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_cond1, aes(
@@ -255,11 +298,6 @@ pheatmap(
 
 graphics.off()
 
-write.csv(
-  res_WTvKO_cond1,
-  file = here("processed/02-DESeq2/genomeKOvsWT.conditioncondition1.csv")
-)
-
 ## Contrast Condition 2 ####
 
 res_WTvKO_cond2 <-
@@ -269,9 +307,16 @@ res_WTvKO_cond2 <-
             "genomeWT.conditioncondition2"
           ))
 
+write.csv(
+  res_WTvKO_cond2,
+  file = here(
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKOvsWT.conditioncondition2_sans15.csv"
+  )
+)
+
 res_WTvKO_cond2 <- res_WTvKO_cond2 %>% na.omit()
 
-res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj), ]
+res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj),]
 
 ### Condition 2 Plots ####
 pdf(
@@ -286,7 +331,7 @@ p_data_cond2 <- res_WTvKO_cond2 %>% na.omit() %>% as_tibble()
 
 p_data_cond2$sig <- "NS"
 
-p_data_cond2[p_data_cond2$padj < 0.1,]$sig <- "A"
+p_data_cond2[p_data_cond2$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_cond2, aes(
@@ -332,11 +377,6 @@ pheatmap(
 
 graphics.off()
 
-write.csv(
-  res_WTvKO_cond2,
-  file = here("processed/02-DESeq2/genomeKOvsWT.conditioncondition2.csv")
-)
-
 ## Custom Constrasts ####
 
 # 1) Group1 vs Group2, 2) Group1 vs Group3, 3) Group 3 vs Group4, and 4) Group 2 vs Group 4.
@@ -350,9 +390,16 @@ res_WT2vsWT1 <-
             "genomeWT.conditioncondition1"
           ))
 
+write.csv(
+  res_WT2vsWT1,
+  file = here(
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeWT.conditioncondition2vs1_sans15.csv"
+  )
+)
+
 res_WT2vsWT1 <- res_WT2vsWT1 %>% na.omit()
 
-res_WT2vsWT1 <- res_WT2vsWT1[order(res_WT2vsWT1$padj), ]
+res_WT2vsWT1 <- res_WT2vsWT1[order(res_WT2vsWT1$padj),]
 
 pdf(
   here("processed/02-DESeq2/WT2vsWT1_DESeq2_plots.pdf"),
@@ -366,7 +413,7 @@ p_data_WT2vWT1 <- res_WT2vsWT1 %>% na.omit() %>% as_tibble()
 
 p_data_WT2vWT1$sig <- "NS"
 
-p_data_WT2vWT1[p_data_WT2vWT1$padj < 0.1,]$sig <- "A"
+p_data_WT2vWT1[p_data_WT2vWT1$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_WT2vWT1, aes(
@@ -413,9 +460,6 @@ pheatmap(
 
 graphics.off()
 
-write.csv(res_WT2vsWT1,
-          file = here("processed/02-DESeq2/genomeWT.conditioncondition2vs1.csv"))
-
 ## KO2vsKO1 ####
 
 res_KO2vsKO1 <-
@@ -425,9 +469,16 @@ res_KO2vsKO1 <-
             "genomeKO.conditioncondition1"
           ))
 
+write.csv(
+  res_KO2vsKO1,
+  file = here(
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKO.conditioncondition2vs1_sans15.csv"
+  )
+)
+
 res_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit()
 
-res_KO2vsKO1 <- res_KO2vsKO1[order(res_KO2vsKO1$padj), ]
+res_KO2vsKO1 <- res_KO2vsKO1[order(res_KO2vsKO1$padj),]
 
 pdf(
   here("processed/02-DESeq2/KO2vsKO1_DESeq2_plots.pdf"),
@@ -441,7 +492,7 @@ p_data_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit() %>% as_tibble()
 
 p_data_KO2vsKO1$sig <- "NS"
 
-p_data_KO2vsKO1[p_data_KO2vsKO1$padj < 0.1,]$sig <- "A"
+p_data_KO2vsKO1[p_data_KO2vsKO1$padj < 0.1, ]$sig <- "A"
 
 ## Volcano plot; color by significance (adjusted p-value)
 ggplot(p_data_KO2vsKO1, aes(
@@ -488,9 +539,6 @@ pheatmap(
 
 graphics.off()
 
-write.csv(res_KO2vsKO1,
-          file = here("processed/02-DESeq2/genomeKO.conditioncondition2vs1.csv"))
-
 # save.image(here("preGO_GSEA.RData"))
 # load("preGO_GSEA.RData")
 
@@ -516,16 +564,16 @@ gene_WT2vsWT1 <-
                            (res_WT2vsWT1$log2FoldChange > 0)]
 
 gene_WTvKO_cond1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond1,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond1, ]$gene_id
 gene_WTvKO_cond2_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2, ]$gene_id
 gene_KO2vsKO1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_KO2vsKO1,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_KO2vsKO1, ]$gene_id
 gene_WT2vsWT1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WT2vsWT1,]$gene_id
+  gene_counts[gene_counts$gene_name %in% gene_WT2vsWT1, ]$gene_id
 
-enrichGO_gene_WTvKO_cond2 <- enrichGO(
-  gene = gene_WTvKO_cond2_sig_genes_tx,
+enrichGO_gene_WTvKO_cond1 <- enrichGO(
+  gene = gene_WTvKO_cond1_sig_genes_tx,
   universe = gene_counts$gene_id,
   OrgDb = org.Mm.eg.db,
   keyType = 'ENSEMBL',
@@ -536,8 +584,8 @@ enrichGO_gene_WTvKO_cond2 <- enrichGO(
   readable = TRUE
 )
 
-enrichGO_gene_WTvKO_cond1 <- enrichGO(
-  gene = gene_WTvKO_cond1_sig_genes_tx,
+enrichGO_gene_WTvKO_cond2 <- enrichGO(
+  gene = gene_WTvKO_cond2_sig_genes_tx,
   universe = gene_counts$gene_id,
   OrgDb = org.Mm.eg.db,
   keyType = 'ENSEMBL',
@@ -579,7 +627,7 @@ prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
   # geneList_res_WTvKO_cond2 <- geneList_res_WTvKO_cond2[geneList_res_WTvKO_cond2$gene_id %in% gene_counts$gene_name,]
   
   gene_count_sub <-
-    gene_counts[gene_counts$gene_name %in% geneList$gene_id, ][, c("gene_name", "gene_id")] %>% as.data.frame()
+    gene_counts[gene_counts$gene_name %in% geneList$gene_id,][, c("gene_name", "gene_id")] %>% as.data.frame()
   
   geneList <-
     merge(gene_count_sub,
@@ -751,7 +799,7 @@ KEGG_IDs_KO2vsKO1 <-
 
 ### WTvsKO1 ####
 KEGG_IDs_WTvKO1 <-
-  KEGG_IDs_WTvKO1[KEGG_IDs_WTvKO1$ENSEMBL %in% names(geneList_res_WTvKO_cond1_input), ]
+  KEGG_IDs_WTvKO1[KEGG_IDs_WTvKO1$ENSEMBL %in% names(geneList_res_WTvKO_cond1_input),]
 
 geneList_res_WTvKO_cond1_input_df <-
   geneList_res_WTvKO_cond1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
@@ -786,7 +834,7 @@ gseKEGG_WTvKO_cond1 <-
 ### WTvsKO2 ####
 
 KEGG_IDs_WTvKO2 <-
-  KEGG_IDs_WTvKO2[KEGG_IDs_WTvKO2$ENSEMBL %in% names(geneList_res_WTvKO_cond2_input), ]
+  KEGG_IDs_WTvKO2[KEGG_IDs_WTvKO2$ENSEMBL %in% names(geneList_res_WTvKO_cond2_input),]
 
 geneList_res_WTvKO_cond2_input_df <-
   geneList_res_WTvKO_cond2_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
@@ -820,7 +868,7 @@ gseKEGG_WTvKO_cond2 <-
 ### WT1vsWT2 ####
 
 KEGG_IDs_WT2vWT1 <-
-  KEGG_IDs_WT2vWT1[KEGG_IDs_WT2vWT1$ENSEMBL %in% names(geneList_res_WT2vsWT1_input), ]
+  KEGG_IDs_WT2vWT1[KEGG_IDs_WT2vWT1$ENSEMBL %in% names(geneList_res_WT2vsWT1_input),]
 
 geneList_res_WT2vsWT1_input_df <-
   geneList_res_WT2vsWT1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
@@ -853,7 +901,7 @@ gseKEGG_WT2vsWT1 <-
 ### KO1vsKO2 ####
 
 KEGG_IDs_KO2vsKO1 <-
-  KEGG_IDs_KO2vsKO1[KEGG_IDs_KO2vsKO1$ENSEMBL %in% names(geneList_res_KO2vsKO1_input), ]
+  KEGG_IDs_KO2vsKO1[KEGG_IDs_KO2vsKO1$ENSEMBL %in% names(geneList_res_KO2vsKO1_input),]
 
 geneList_res_KO2vsKO1_input_df <-
   geneList_res_KO2vsKO1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
@@ -938,12 +986,16 @@ write.csv(
 
 write.csv(
   enrichGO_gene_WTvKO_cond1@result,
-  file = here("processed/02-DESeq2/enrichGO_gene_WTvKO_cond1_results.csv")
+  file = here(
+    "processed/02-DESeq2/enrichGO_gene_WTvKO_cond1_results.csv"
+  )
 )
 
 write.csv(
   enrichGO_gene_WTvKO_cond2@result,
-  file = here("processed/02-DESeq2/enrichGO_gene_WTvKO_cond2_results.csv")
+  file = here(
+    "processed/02-DESeq2/enrichGO_gene_WTvKO_cond2_results.csv"
+  )
 )
 
 # GSEA
@@ -960,25 +1012,25 @@ write.csv(
 
 write.csv(
   gsea_gene_WTvKO_cond1_sig_genes_tx@result,
-  file = here("processed/02-DESeq2/gsea_gene_WTvKO_cond1_sig_genes_tx.csv")
+  file = here(
+    "processed/02-DESeq2/gsea_gene_WTvKO_cond1_sig_genes_tx.csv"
+  )
 )
 
 write.csv(
   gsea_gene_WTvKO_cond2_sig_genes_tx@result,
-  file = here("processed/02-DESeq2/gsea_gene_WTvKO_cond2_sig_genes_tx.csv")
+  file = here(
+    "processed/02-DESeq2/gsea_gene_WTvKO_cond2_sig_genes_tx.csv"
+  )
 )
 
 # KEGG_GSEA
 
-write.csv(
-  gseKEGG_KO2vsKO1@result,
-  file = here("processed/02-DESeq2/gseKEGG_KO2vsKO1.csv")
-)
+write.csv(gseKEGG_KO2vsKO1@result,
+          file = here("processed/02-DESeq2/gseKEGG_KO2vsKO1.csv"))
 
-write.csv(
-  gseKEGG_WT2vsWT1@result,
-  file = here("processed/02-DESeq2/gseKEGG_WT2vsWT1.csv")
-)
+write.csv(gseKEGG_WT2vsWT1@result,
+          file = here("processed/02-DESeq2/gseKEGG_WT2vsWT1.csv"))
 
 write.csv(
   gseKEGG_WTvKO_cond1@result,
