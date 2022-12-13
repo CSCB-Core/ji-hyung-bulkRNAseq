@@ -114,11 +114,21 @@ metadata$genome <- relevel(metadata$genome, ref = "WT")
 
 metadata$group <- as.factor(metadata$group)
 
+# SCTC-JHL-49 - CONDITION 1 ONLY ####
+
+metadata <- subset(metadata, select = -condition)
+
+metadata <- metadata[-(9:15),]
+
+de_gene_counts <- de_gene_counts[,-(9:15)]
+
+
+# Prep DESeq2 ####
 dds <- DESeqDataSetFromMatrix(
   countData = round(de_gene_counts),
   # negatives?
   colData = metadata,
-  design = ~ 0 + genome:condition,
+  design = ~ 0 + genome,
   tidy = FALSE
 )
 
@@ -132,7 +142,7 @@ rld <- rlog(dds, blind = TRUE)
 ### Plot PCA
 
 # save the PCA plot as a pdf
-pdf(here("processed/02-DESeq2/PCA_GroupxSample.pdf"))
+pdf(here("processed/02-DESeq2/PCA_GroupxSample_condition1_only.pdf"))
 
 plotPCA(rld, intgroup = "group")
 plotPCA(rld, intgroup = "sample_names")
@@ -150,7 +160,7 @@ rownames(rld_out) <- rownames(dds)
 #Tinf2 present
 write.csv(rld_out,
           here(
-            "processed/02-DESeq2/rlog2_counts_allSamples_JH_RNAseq.csv"
+            "processed/02-DESeq2/rlog2_counts_allSamples_JH_RNAseq_Condition1_only.csv"
           ))
 
 ### Compute pairwise correlation values
@@ -158,7 +168,7 @@ rld_cor <- cor(rld_mat)    ## cor() is a base R function
 
 pdf(
   here(
-    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/SampleCorrelationHeatmap.pdf"
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/SampleCorrelationHeatmap_condition1_only.pdf"
   ),
   height = 8,
   width = 11
@@ -180,14 +190,14 @@ pheatmap(
   cluster_cols = FALSE,
   main = "Sample Correlation Heatmap, Condition 1"
 )
-
-pheatmap(
-  rld_cor[9:15, 9:15],
-  annotation = metadata,
-  cluster_rows = FALSE,
-  cluster_cols = FALSE,
-  main = "Sample Correlation Heatmap, Condition 2"
-)
+# 
+# pheatmap(
+#   rld_cor[9:15, 9:15],
+#   annotation = metadata,
+#   cluster_rows = FALSE,
+#   cluster_cols = FALSE,
+#   main = "Sample Correlation Heatmap, Condition 2"
+# )
 
 graphics.off()
 
@@ -221,14 +231,14 @@ plotDispEsts(dds)
 res_WTvKO_cond1 <-
   results(dds,
           contrast = list(
-            "genomeKO.conditioncondition1",
-            "genomeWT.conditioncondition1"
+            "genomeKO",
+            "genomeWT"
           ))
 
 write.csv(
   res_WTvKO_cond1,
   file = here(
-    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKOvsWT.conditioncondition1_sans15.csv"
+    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKOvsWT_condition1_only.csv"
   )
 )
 
@@ -299,83 +309,83 @@ pheatmap(
 graphics.off()
 
 ## Contrast Condition 2 ####
-
-res_WTvKO_cond2 <-
-  results(dds,
-          contrast = list(
-            "genomeKO.conditioncondition2",
-            "genomeWT.conditioncondition2"
-          ))
-
-write.csv(
-  res_WTvKO_cond2,
-  file = here(
-    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKOvsWT.conditioncondition2_sans15.csv"
-  )
-)
-
-res_WTvKO_cond2 <- res_WTvKO_cond2 %>% na.omit()
-
-res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj),]
+# 
+# res_WTvKO_cond2 <-
+#   results(dds,
+#           contrast = list(
+#             "genomeKO.conditioncondition2",
+#             "genomeWT.conditioncondition2"
+#           ))
+# 
+# write.csv(
+#   res_WTvKO_cond2,
+#   file = here(
+#     "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKOvsWT.conditioncondition2_sans15.csv"
+#   )
+# )
+# 
+# res_WTvKO_cond2 <- res_WTvKO_cond2 %>% na.omit()
+# 
+# res_WTvKO_cond2 <- res_WTvKO_cond2[order(res_WTvKO_cond2$padj),]
 
 ### Condition 2 Plots ####
-pdf(
-  here("processed/02-DESeq2/KOvsWT_cond2_DESeq2_plots.pdf"),
-  height = 8,
-  width = 11
-)
-
-plotMA(res_WTvKO_cond2)
-
-p_data_cond2 <- res_WTvKO_cond2 %>% na.omit() %>% as_tibble()
-
-p_data_cond2$sig <- "NS"
-
-p_data_cond2[p_data_cond2$padj < 0.1, ]$sig <- "A"
-
-## Volcano plot; color by significance (adjusted p-value)
-ggplot(p_data_cond2, aes(
-  x = log2FoldChange,
-  y = -log10(padj),
-  color = sig
-)) +
-  geom_point() +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "none") +
-  xlab("log2 Fold Change") +
-  ylab("-log10 Adjusted p-value") +
-  ggtitle("Volcano plot of KO vs WT in Condition 2 interaction") +
-  scale_color_manual(values = c("black", "blue"))
-
-normalized_counts <- counts(dds, normalized = T) %>%
-  data.frame() %>%
-  rownames_to_column(var = "gene_name") %>%
-  as_tibble() %>%
-  filter(gene_name %in% rownames(res_WTvKO_cond2)[res_WTvKO_cond2$padj < 0.1])
-
-heat_colors <- brewer.pal(6, "YlOrRd")
-
-### Run pheatmap using the metadata data frame for the annotation
-pheatmap(
-  normalized_counts[, which(metadata$condition == "condition2") + 1],
-  color = heat_colors,
-  cluster_rows = T,
-  show_rownames = F,
-  annotation = metadata,
-  border_color = NA,
-  fontsize = 10,
-  fontsize_row = 10,
-  height = 20,
-  scale = "row",
-  main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, KO vs WT in Condition 2 Interaction"
-) # Row-scaled
-
-# plotCounts(dds,
-#            gene = which.min(res_WTvKO_cond2$padj),
-#            intgroup = "genome")
-
-graphics.off()
+# pdf(
+#   here("processed/02-DESeq2/KOvsWT_cond2_DESeq2_plots.pdf"),
+#   height = 8,
+#   width = 11
+# )
+# 
+# plotMA(res_WTvKO_cond2)
+# 
+# p_data_cond2 <- res_WTvKO_cond2 %>% na.omit() %>% as_tibble()
+# 
+# p_data_cond2$sig <- "NS"
+# 
+# p_data_cond2[p_data_cond2$padj < 0.1, ]$sig <- "A"
+# 
+# ## Volcano plot; color by significance (adjusted p-value)
+# ggplot(p_data_cond2, aes(
+#   x = log2FoldChange,
+#   y = -log10(padj),
+#   color = sig
+# )) +
+#   geom_point() +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+#         legend.position = "none") +
+#   xlab("log2 Fold Change") +
+#   ylab("-log10 Adjusted p-value") +
+#   ggtitle("Volcano plot of KO vs WT in Condition 2 interaction") +
+#   scale_color_manual(values = c("black", "blue"))
+# 
+# normalized_counts <- counts(dds, normalized = T) %>%
+#   data.frame() %>%
+#   rownames_to_column(var = "gene_name") %>%
+#   as_tibble() %>%
+#   filter(gene_name %in% rownames(res_WTvKO_cond2)[res_WTvKO_cond2$padj < 0.1])
+# 
+# heat_colors <- brewer.pal(6, "YlOrRd")
+# 
+# ### Run pheatmap using the metadata data frame for the annotation
+# pheatmap(
+#   normalized_counts[, which(metadata$condition == "condition2") + 1],
+#   color = heat_colors,
+#   cluster_rows = T,
+#   show_rownames = F,
+#   annotation = metadata,
+#   border_color = NA,
+#   fontsize = 10,
+#   fontsize_row = 10,
+#   height = 20,
+#   scale = "row",
+#   main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, KO vs WT in Condition 2 Interaction"
+# ) # Row-scaled
+# 
+# # plotCounts(dds,
+# #            gene = which.min(res_WTvKO_cond2$padj),
+# #            intgroup = "genome")
+# 
+# graphics.off()
 
 ## Custom Constrasts ####
 
@@ -383,161 +393,161 @@ graphics.off()
 # One control, one knockout, one control with 2nd condition and knockout with 2nd condition.
 
 ### WT2vsWT1 ####
-res_WT2vsWT1 <-
-  results(dds,
-          contrast = list(
-            "genomeWT.conditioncondition2",
-            "genomeWT.conditioncondition1"
-          ))
-
-write.csv(
-  res_WT2vsWT1,
-  file = here(
-    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeWT.conditioncondition2vs1_sans15.csv"
-  )
-)
-
-res_WT2vsWT1 <- res_WT2vsWT1 %>% na.omit()
-
-res_WT2vsWT1 <- res_WT2vsWT1[order(res_WT2vsWT1$padj),]
-
-pdf(
-  here("processed/02-DESeq2/WT2vsWT1_DESeq2_plots.pdf"),
-  height = 8,
-  width = 11
-)
-
-plotMA(res_WT2vsWT1)
-
-p_data_WT2vWT1 <- res_WT2vsWT1 %>% na.omit() %>% as_tibble()
-
-p_data_WT2vWT1$sig <- "NS"
-
-p_data_WT2vWT1[p_data_WT2vWT1$padj < 0.1, ]$sig <- "A"
-
-## Volcano plot; color by significance (adjusted p-value)
-ggplot(p_data_WT2vWT1, aes(
-  x = log2FoldChange,
-  y = -log10(padj),
-  color = sig
-)) +
-  geom_point() +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "none") +
-  xlab("log2 Fold Change") +
-  ylab("-log10 Adjusted p-value") +
-  ggtitle("Volcano plot of WT in Condition 2 vs WT in Condition 1") +
-  scale_color_manual(values = c("black", "blue"))
-
-normalized_counts <- counts(dds, normalized = T) %>%
-  data.frame() %>%
-  rownames_to_column(var = "gene_name") %>%
-  as_tibble() %>%
-  filter(gene_name %in% rownames(res_WT2vsWT1)[res_WT2vsWT1$padj < 0.1])
-
-heat_colors <- brewer.pal(6, "YlOrRd")
-
-### Run pheatmap using the metadata data frame for the annotation
-pheatmap(
-  normalized_counts[, which(metadata$genome == "WT") + 1],
-  # WT 1 vs WT 2
-  color = heat_colors,
-  cluster_rows = T,
-  show_rownames = F,
-  annotation = metadata,
-  border_color = NA,
-  fontsize = 10,
-  fontsize_row = 10,
-  height = 20,
-  scale = "row",
-  main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, WT 1 vs WT 2 Interaction"
-) # Row-scaled
-
-# plotCounts(dds,
-#            gene = which.min(res_WT2vsWT1$padj),
-#            intgroup = "genome")
-
-graphics.off()
+# res_WT2vsWT1 <-
+#   results(dds,
+#           contrast = list(
+#             "genomeWT.conditioncondition2",
+#             "genomeWT.conditioncondition1"
+#           ))
+# 
+# write.csv(
+#   res_WT2vsWT1,
+#   file = here(
+#     "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeWT.conditioncondition2vs1_sans15.csv"
+#   )
+# )
+# 
+# res_WT2vsWT1 <- res_WT2vsWT1 %>% na.omit()
+# 
+# res_WT2vsWT1 <- res_WT2vsWT1[order(res_WT2vsWT1$padj),]
+# 
+# pdf(
+#   here("processed/02-DESeq2/WT2vsWT1_DESeq2_plots.pdf"),
+#   height = 8,
+#   width = 11
+# )
+# 
+# plotMA(res_WT2vsWT1)
+# 
+# p_data_WT2vWT1 <- res_WT2vsWT1 %>% na.omit() %>% as_tibble()
+# 
+# p_data_WT2vWT1$sig <- "NS"
+# 
+# p_data_WT2vWT1[p_data_WT2vWT1$padj < 0.1, ]$sig <- "A"
+# 
+# ## Volcano plot; color by significance (adjusted p-value)
+# ggplot(p_data_WT2vWT1, aes(
+#   x = log2FoldChange,
+#   y = -log10(padj),
+#   color = sig
+# )) +
+#   geom_point() +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+#         legend.position = "none") +
+#   xlab("log2 Fold Change") +
+#   ylab("-log10 Adjusted p-value") +
+#   ggtitle("Volcano plot of WT in Condition 2 vs WT in Condition 1") +
+#   scale_color_manual(values = c("black", "blue"))
+# 
+# normalized_counts <- counts(dds, normalized = T) %>%
+#   data.frame() %>%
+#   rownames_to_column(var = "gene_name") %>%
+#   as_tibble() %>%
+#   filter(gene_name %in% rownames(res_WT2vsWT1)[res_WT2vsWT1$padj < 0.1])
+# 
+# heat_colors <- brewer.pal(6, "YlOrRd")
+# 
+# ### Run pheatmap using the metadata data frame for the annotation
+# pheatmap(
+#   normalized_counts[, which(metadata$genome == "WT") + 1],
+#   # WT 1 vs WT 2
+#   color = heat_colors,
+#   cluster_rows = T,
+#   show_rownames = F,
+#   annotation = metadata,
+#   border_color = NA,
+#   fontsize = 10,
+#   fontsize_row = 10,
+#   height = 20,
+#   scale = "row",
+#   main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, WT 1 vs WT 2 Interaction"
+# ) # Row-scaled
+# 
+# # plotCounts(dds,
+# #            gene = which.min(res_WT2vsWT1$padj),
+# #            intgroup = "genome")
+# 
+# graphics.off()
 
 ## KO2vsKO1 ####
 
-res_KO2vsKO1 <-
-  results(dds,
-          contrast = list(
-            "genomeKO.conditioncondition2",
-            "genomeKO.conditioncondition1"
-          ))
-
-write.csv(
-  res_KO2vsKO1,
-  file = here(
-    "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKO.conditioncondition2vs1_sans15.csv"
-  )
-)
-
-res_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit()
-
-res_KO2vsKO1 <- res_KO2vsKO1[order(res_KO2vsKO1$padj),]
-
-pdf(
-  here("processed/02-DESeq2/KO2vsKO1_DESeq2_plots.pdf"),
-  height = 8,
-  width = 11
-)
-
-plotMA(res_KO2vsKO1)
-
-p_data_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit() %>% as_tibble()
-
-p_data_KO2vsKO1$sig <- "NS"
-
-p_data_KO2vsKO1[p_data_KO2vsKO1$padj < 0.1, ]$sig <- "A"
-
-## Volcano plot; color by significance (adjusted p-value)
-ggplot(p_data_KO2vsKO1, aes(
-  x = log2FoldChange,
-  y = -log10(padj),
-  color = sig
-)) +
-  geom_point() +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "none") +
-  xlab("log2 Fold Change") +
-  ylab("-log10 Adjusted p-value") +
-  ggtitle("Volcano plot of KO vs WT in Condition 2 interaction") +
-  scale_color_manual(values = c("black", "blue"))
-
-normalized_counts <- counts(dds, normalized = T) %>%
-  data.frame() %>%
-  rownames_to_column(var = "gene_name") %>%
-  as_tibble() %>%
-  filter(gene_name %in% rownames(res_KO2vsKO1)[res_KO2vsKO1$padj < 0.1])
-
-heat_colors <- brewer.pal(6, "YlOrRd")
-
-### Run pheatmap using the metadata data frame for the annotation
-pheatmap(
-  normalized_counts[, which(metadata$genome == "KO") + 1],
-  # WT 1 vs WT 2
-  color = heat_colors,
-  cluster_rows = T,
-  show_rownames = F,
-  annotation = metadata,
-  border_color = NA,
-  fontsize = 10,
-  fontsize_row = 10,
-  height = 20,
-  scale = "row",
-  main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, KO 1 vs KO 2 Interaction"
-) # Row-scaled
-
-# plotCounts(dds,
-#            gene = which.min(res_KO2vsKO1$padj),
-#            intgroup = "genome")
-
-graphics.off()
+# res_KO2vsKO1 <-
+#   results(dds,
+#           contrast = list(
+#             "genomeKO.conditioncondition2",
+#             "genomeKO.conditioncondition1"
+#           ))
+# 
+# write.csv(
+#   res_KO2vsKO1,
+#   file = here(
+#     "processed/02-DESeq2/CSCB_JHL_44_RNAseq_Analysis_sans15/genomeKO.conditioncondition2vs1_sans15.csv"
+#   )
+# )
+# 
+# res_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit()
+# 
+# res_KO2vsKO1 <- res_KO2vsKO1[order(res_KO2vsKO1$padj),]
+# 
+# pdf(
+#   here("processed/02-DESeq2/KO2vsKO1_DESeq2_plots.pdf"),
+#   height = 8,
+#   width = 11
+# )
+# 
+# plotMA(res_KO2vsKO1)
+# 
+# p_data_KO2vsKO1 <- res_KO2vsKO1 %>% na.omit() %>% as_tibble()
+# 
+# p_data_KO2vsKO1$sig <- "NS"
+# 
+# p_data_KO2vsKO1[p_data_KO2vsKO1$padj < 0.1, ]$sig <- "A"
+# 
+# ## Volcano plot; color by significance (adjusted p-value)
+# ggplot(p_data_KO2vsKO1, aes(
+#   x = log2FoldChange,
+#   y = -log10(padj),
+#   color = sig
+# )) +
+#   geom_point() +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+#         legend.position = "none") +
+#   xlab("log2 Fold Change") +
+#   ylab("-log10 Adjusted p-value") +
+#   ggtitle("Volcano plot of KO vs WT in Condition 2 interaction") +
+#   scale_color_manual(values = c("black", "blue"))
+# 
+# normalized_counts <- counts(dds, normalized = T) %>%
+#   data.frame() %>%
+#   rownames_to_column(var = "gene_name") %>%
+#   as_tibble() %>%
+#   filter(gene_name %in% rownames(res_KO2vsKO1)[res_KO2vsKO1$padj < 0.1])
+# 
+# heat_colors <- brewer.pal(6, "YlOrRd")
+# 
+# ### Run pheatmap using the metadata data frame for the annotation
+# pheatmap(
+#   normalized_counts[, which(metadata$genome == "KO") + 1],
+#   # WT 1 vs WT 2
+#   color = heat_colors,
+#   cluster_rows = T,
+#   show_rownames = F,
+#   annotation = metadata,
+#   border_color = NA,
+#   fontsize = 10,
+#   fontsize_row = 10,
+#   height = 20,
+#   scale = "row",
+#   main = "Heatmap plot of Differentially-Expressed Genes with a < 0.1 Adjusted P-Value, KO 1 vs KO 2 Interaction"
+# ) # Row-scaled
+# 
+# # plotCounts(dds,
+# #            gene = which.min(res_KO2vsKO1$padj),
+# #            intgroup = "genome")
+# 
+# graphics.off()
 
 # save.image(here("preGO_GSEA.RData"))
 # load("preGO_GSEA.RData")
@@ -551,26 +561,26 @@ gene_WTvKO_cond1 <-
   rownames(res_WTvKO_cond1)[(res_WTvKO_cond1$padj < 0.1) &
                               (res_WTvKO_cond1$log2FoldChange > 0)]
 
-gene_WTvKO_cond2 <-
-  rownames(res_WTvKO_cond2)[(res_WTvKO_cond2$padj < 0.1) &
-                              (res_WTvKO_cond2$log2FoldChange > 0)]
-
-gene_KO2vsKO1 <-
-  rownames(res_KO2vsKO1)[(res_KO2vsKO1$padj < 0.1) &
-                           (res_KO2vsKO1$log2FoldChange > 0)]
-
-gene_WT2vsWT1 <-
-  rownames(res_WT2vsWT1)[(res_WT2vsWT1$padj < 0.1) &
-                           (res_WT2vsWT1$log2FoldChange > 0)]
+# gene_WTvKO_cond2 <-
+#   rownames(res_WTvKO_cond2)[(res_WTvKO_cond2$padj < 0.1) &
+#                               (res_WTvKO_cond2$log2FoldChange > 0)]
+# 
+# gene_KO2vsKO1 <-
+#   rownames(res_KO2vsKO1)[(res_KO2vsKO1$padj < 0.1) &
+#                            (res_KO2vsKO1$log2FoldChange > 0)]
+# 
+# gene_WT2vsWT1 <-
+#   rownames(res_WT2vsWT1)[(res_WT2vsWT1$padj < 0.1) &
+#                            (res_WT2vsWT1$log2FoldChange > 0)]
 
 gene_WTvKO_cond1_sig_genes_tx <-
   gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond1, ]$gene_id
-gene_WTvKO_cond2_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2, ]$gene_id
-gene_KO2vsKO1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_KO2vsKO1, ]$gene_id
-gene_WT2vsWT1_sig_genes_tx <-
-  gene_counts[gene_counts$gene_name %in% gene_WT2vsWT1, ]$gene_id
+# gene_WTvKO_cond2_sig_genes_tx <-
+#   gene_counts[gene_counts$gene_name %in% gene_WTvKO_cond2, ]$gene_id
+# gene_KO2vsKO1_sig_genes_tx <-
+#   gene_counts[gene_counts$gene_name %in% gene_KO2vsKO1, ]$gene_id
+# gene_WT2vsWT1_sig_genes_tx <-
+#   gene_counts[gene_counts$gene_name %in% gene_WT2vsWT1, ]$gene_id
 
 enrichGO_gene_WTvKO_cond1 <- enrichGO(
   gene = gene_WTvKO_cond1_sig_genes_tx,
@@ -584,41 +594,41 @@ enrichGO_gene_WTvKO_cond1 <- enrichGO(
   readable = TRUE
 )
 
-enrichGO_gene_WTvKO_cond2 <- enrichGO(
-  gene = gene_WTvKO_cond2_sig_genes_tx,
-  universe = gene_counts$gene_id,
-  OrgDb = org.Mm.eg.db,
-  keyType = 'ENSEMBL',
-  ont = "BP",
-  pAdjustMethod = "BH",
-  pvalueCutoff = 0.01,
-  qvalueCutoff = 0.1,
-  readable = TRUE
-)
-
-enrichGO_gene_KO2vsKO1 <- enrichGO(
-  gene = gene_KO2vsKO1_sig_genes_tx,
-  universe = gene_counts$gene_id,
-  OrgDb = org.Mm.eg.db,
-  keyType = 'ENSEMBL',
-  ont = "BP",
-  pAdjustMethod = "BH",
-  pvalueCutoff = 0.01,
-  qvalueCutoff = 0.1,
-  readable = TRUE
-)
-
-enrichGO_gene_WT2vsWT1 <- enrichGO(
-  gene = gene_WT2vsWT1_sig_genes_tx,
-  universe = gene_counts$gene_id,
-  OrgDb = org.Mm.eg.db,
-  keyType = 'ENSEMBL',
-  ont = "BP",
-  pAdjustMethod = "BH",
-  pvalueCutoff = 0.01,
-  qvalueCutoff = 0.1,
-  readable = TRUE
-)
+# enrichGO_gene_WTvKO_cond2 <- enrichGO(
+#   gene = gene_WTvKO_cond2_sig_genes_tx,
+#   universe = gene_counts$gene_id,
+#   OrgDb = org.Mm.eg.db,
+#   keyType = 'ENSEMBL',
+#   ont = "BP",
+#   pAdjustMethod = "BH",
+#   pvalueCutoff = 0.01,
+#   qvalueCutoff = 0.1,
+#   readable = TRUE
+# )
+# 
+# enrichGO_gene_KO2vsKO1 <- enrichGO(
+#   gene = gene_KO2vsKO1_sig_genes_tx,
+#   universe = gene_counts$gene_id,
+#   OrgDb = org.Mm.eg.db,
+#   keyType = 'ENSEMBL',
+#   ont = "BP",
+#   pAdjustMethod = "BH",
+#   pvalueCutoff = 0.01,
+#   qvalueCutoff = 0.1,
+#   readable = TRUE
+# )
+# 
+# enrichGO_gene_WT2vsWT1 <- enrichGO(
+#   gene = gene_WT2vsWT1_sig_genes_tx,
+#   universe = gene_counts$gene_id,
+#   OrgDb = org.Mm.eg.db,
+#   keyType = 'ENSEMBL',
+#   ont = "BP",
+#   pAdjustMethod = "BH",
+#   pvalueCutoff = 0.01,
+#   qvalueCutoff = 0.1,
+#   readable = TRUE
+# )
 
 prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
   geneList <-
@@ -659,14 +669,14 @@ prepGeneList <- function(DESeq_res, gene_counts, rank = "log2") {
 geneList_res_WTvKO_cond1_input <-
   prepGeneList(res_WTvKO_cond1, gene_counts)
 
-geneList_res_WTvKO_cond2_input <-
-  prepGeneList(res_WTvKO_cond2, gene_counts)
-
-geneList_res_WT2vsWT1_input <-
-  prepGeneList(res_WT2vsWT1, gene_counts)
-
-geneList_res_KO2vsKO1_input <-
-  prepGeneList(res_KO2vsKO1, gene_counts)
+# geneList_res_WTvKO_cond2_input <-
+#   prepGeneList(res_WTvKO_cond2, gene_counts)
+# 
+# geneList_res_WT2vsWT1_input <-
+#   prepGeneList(res_WT2vsWT1, gene_counts)
+# 
+# geneList_res_KO2vsKO1_input <-
+#   prepGeneList(res_KO2vsKO1, gene_counts)
 
 # GSEA supports ENSEMBL IDs
 gsea_gene_WTvKO_cond1_sig_genes_tx <- gseGO(
@@ -681,45 +691,45 @@ gsea_gene_WTvKO_cond1_sig_genes_tx <- gseGO(
   verbose      = TRUE
 )
 
-gsea_gene_WTvKO_cond2_sig_genes_tx <- gseGO(
-  geneList     = geneList_res_WTvKO_cond2_input,
-  OrgDb        = org.Mm.eg.db,
-  keyType = "ENSEMBL",
-  pAdjustMethod = "BH",
-  ont = "BP",
-  minGSSize    = 100,
-  maxGSSize    = 500,
-  pvalueCutoff = 0.10,
-  verbose      = TRUE
-)
-
-gsea_gene_WT2vsWT1_sig_genes_tx <- gseGO(
-  geneList     = geneList_res_WT2vsWT1_input,
-  OrgDb        = org.Mm.eg.db,
-  keyType = "ENSEMBL",
-  pAdjustMethod = "BH",
-  ont = "BP",
-  minGSSize    = 100,
-  maxGSSize    = 500,
-  pvalueCutoff = 0.10,
-  verbose      = TRUE
-)
-
-gsea_gene_KO2vsKO1_sig_genes_tx <- gseGO(
-  geneList     = geneList_res_KO2vsKO1_input,
-  OrgDb        = org.Mm.eg.db,
-  keyType = "ENSEMBL",
-  pAdjustMethod = "BH",
-  ont = "BP",
-  minGSSize    = 100,
-  maxGSSize    = 500,
-  pvalueCutoff = 0.10,
-  verbose      = TRUE
-)
+# gsea_gene_WTvKO_cond2_sig_genes_tx <- gseGO(
+#   geneList     = geneList_res_WTvKO_cond2_input,
+#   OrgDb        = org.Mm.eg.db,
+#   keyType = "ENSEMBL",
+#   pAdjustMethod = "BH",
+#   ont = "BP",
+#   minGSSize    = 100,
+#   maxGSSize    = 500,
+#   pvalueCutoff = 0.10,
+#   verbose      = TRUE
+# )
+# 
+# gsea_gene_WT2vsWT1_sig_genes_tx <- gseGO(
+#   geneList     = geneList_res_WT2vsWT1_input,
+#   OrgDb        = org.Mm.eg.db,
+#   keyType = "ENSEMBL",
+#   pAdjustMethod = "BH",
+#   ont = "BP",
+#   minGSSize    = 100,
+#   maxGSSize    = 500,
+#   pvalueCutoff = 0.10,
+#   verbose      = TRUE
+# )
+# 
+# gsea_gene_KO2vsKO1_sig_genes_tx <- gseGO(
+#   geneList     = geneList_res_KO2vsKO1_input,
+#   OrgDb        = org.Mm.eg.db,
+#   keyType = "ENSEMBL",
+#   pAdjustMethod = "BH",
+#   ont = "BP",
+#   minGSSize    = 100,
+#   maxGSSize    = 500,
+#   pvalueCutoff = 0.10,
+#   verbose      = TRUE
+# )
 
 # https://learn.gencore.bio.nyu.edu/rna-seq-analysis/gene-set-enrichment-analysis/
 
-pdf(here("processed/02-DESeq2/GO_ORA-GSEA.pdf"),
+pdf(here("processed/02-DESeq2/GO_ORA-GSEA_Condition1_only.pdf"),
     height = 8,
     width = 11)
 
@@ -727,24 +737,24 @@ pdf(here("processed/02-DESeq2/GO_ORA-GSEA.pdf"),
 barplot(enrichGO_gene_WTvKO_cond1) + ggtitle(
   "Bar Plot of Top ORA Gene Ontologies in KO vs WT Condition 1 Differential Expression Analysis"
 )
-barplot(enrichGO_gene_WTvKO_cond2) + ggtitle(
-  "Bar Plot of Top ORA Gene Ontologies in KO vs WT Condition 2 Differential Expression Analysis"
-)
-barplot(enrichGO_gene_WT2vsWT1) + ggtitle(
-  "Bar Plot of Top ORA Gene Ontologies in WT Condition 2 vs WT Condition 1 Differential Expression Analysis"
-)
-barplot(enrichGO_gene_KO2vsKO1) + ggtitle(
-  "Bar Plot of Top ORA Gene Ontologies in KO Condition 2 vs KO Condition 1 Differential Expression Analysis"
-)
+# barplot(enrichGO_gene_WTvKO_cond2) + ggtitle(
+#   "Bar Plot of Top ORA Gene Ontologies in KO vs WT Condition 2 Differential Expression Analysis"
+# )
+# barplot(enrichGO_gene_WT2vsWT1) + ggtitle(
+#   "Bar Plot of Top ORA Gene Ontologies in WT Condition 2 vs WT Condition 1 Differential Expression Analysis"
+# )
+# barplot(enrichGO_gene_KO2vsKO1) + ggtitle(
+#   "Bar Plot of Top ORA Gene Ontologies in KO Condition 2 vs KO Condition 1 Differential Expression Analysis"
+# )
 
 dotplot(gsea_gene_WTvKO_cond1_sig_genes_tx) + ggtitle("Dot Plot of Top GO GSEA Gene Sets in KO vs WT Condition 1 Differential Expression Analysis")
-dotplot(gsea_gene_WTvKO_cond2_sig_genes_tx) + ggtitle("Dot Plot of Top GO GSEA Gene Sets in KO vs WT Condition 2 Differential Expression Analysis")
-dotplot(gsea_gene_WT2vsWT1_sig_genes_tx) + ggtitle(
-  "Dot Plot of Top GO GSEA Gene Sets in WT Condition 2 vs WT Condition 1 Differential Expression Analysis"
-)
-dotplot(gsea_gene_KO2vsKO1_sig_genes_tx) + ggtitle(
-  "Dot Plot of Top GO GSEA Gene Sets in KO Condition 2 vs WT Condition 1 Differential Expression Analysis"
-)
+# dotplot(gsea_gene_WTvKO_cond2_sig_genes_tx) + ggtitle("Dot Plot of Top GO GSEA Gene Sets in KO vs WT Condition 2 Differential Expression Analysis")
+# dotplot(gsea_gene_WT2vsWT1_sig_genes_tx) + ggtitle(
+#   "Dot Plot of Top GO GSEA Gene Sets in WT Condition 2 vs WT Condition 1 Differential Expression Analysis"
+# )
+# dotplot(gsea_gene_KO2vsKO1_sig_genes_tx) + ggtitle(
+#   "Dot Plot of Top GO GSEA Gene Sets in KO Condition 2 vs WT Condition 1 Differential Expression Analysis"
+# )
 
 # emapplot(gsea_gene_WTvKO_cond1_sig_genes_tx, showCategory = 10)
 #
@@ -765,35 +775,35 @@ KEGG_IDs_WTvKO1 <-
     # organism = "mmu"
   )
 
-KEGG_IDs_WTvKO2 <-
-  bitr(
-    names(geneList_res_WTvKO_cond2_input)[abs(geneList_res_WTvKO_cond2_input) > 1],
-    # keep only logFC > 1
-    fromType = 'ENSEMBL',
-    toType = 'ENTREZID',
-    OrgDb = org.Mm.eg.db
-    # organism = "mmu"
-  )
-
-KEGG_IDs_WT2vWT1 <-
-  bitr(
-    names(geneList_res_WT2vsWT1_input)[abs(geneList_res_WT2vsWT1_input) > 1],
-    # keep only logFC > 1
-    fromType = 'ENSEMBL',
-    toType = 'ENTREZID',
-    OrgDb = org.Mm.eg.db
-    # organism = "mmu"
-  )
-
-KEGG_IDs_KO2vsKO1 <-
-  bitr(
-    names(geneList_res_KO2vsKO1_input)[abs(geneList_res_KO2vsKO1_input) > 1],
-    # keep only logFC > 1
-    fromType = 'ENSEMBL',
-    toType = 'ENTREZID',
-    OrgDb = org.Mm.eg.db
-    # organism = "mmu"
-  )
+# KEGG_IDs_WTvKO2 <-
+#   bitr(
+#     names(geneList_res_WTvKO_cond2_input)[abs(geneList_res_WTvKO_cond2_input) > 1],
+#     # keep only logFC > 1
+#     fromType = 'ENSEMBL',
+#     toType = 'ENTREZID',
+#     OrgDb = org.Mm.eg.db
+#     # organism = "mmu"
+#   )
+# 
+# KEGG_IDs_WT2vWT1 <-
+#   bitr(
+#     names(geneList_res_WT2vsWT1_input)[abs(geneList_res_WT2vsWT1_input) > 1],
+#     # keep only logFC > 1
+#     fromType = 'ENSEMBL',
+#     toType = 'ENTREZID',
+#     OrgDb = org.Mm.eg.db
+#     # organism = "mmu"
+#   )
+# 
+# KEGG_IDs_KO2vsKO1 <-
+#   bitr(
+#     names(geneList_res_KO2vsKO1_input)[abs(geneList_res_KO2vsKO1_input) > 1],
+#     # keep only logFC > 1
+#     fromType = 'ENSEMBL',
+#     toType = 'ENTREZID',
+#     OrgDb = org.Mm.eg.db
+#     # organism = "mmu"
+#   )
 
 # geneList_res_WTvKO_cond2 <- geneList_res_WTvKO_cond2[geneList_res_WTvKO_cond2$gene_id %in% gene_counts$gene_name,]
 
@@ -815,7 +825,6 @@ colnames(geneList_res_WTvKO_cond1_input_df)[3] <-
 geneList_res_WTvKO_cond1_input_df_input <-
   geneList_res_WTvKO_cond1_input_df$log2FoldChange
 
-
 names(geneList_res_WTvKO_cond1_input_df_input) <-
   geneList_res_WTvKO_cond1_input_df$ENTREZID
 
@@ -833,107 +842,107 @@ gseKEGG_WTvKO_cond1 <-
 
 ### WTvsKO2 ####
 
-KEGG_IDs_WTvKO2 <-
-  KEGG_IDs_WTvKO2[KEGG_IDs_WTvKO2$ENSEMBL %in% names(geneList_res_WTvKO_cond2_input),]
-
-geneList_res_WTvKO_cond2_input_df <-
-  geneList_res_WTvKO_cond2_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
-
-geneList_res_WTvKO_cond2_input_df <-
-  merge(KEGG_IDs_WTvKO2,
-        geneList_res_WTvKO_cond2_input_df,
-        by = "ENSEMBL")
-
-colnames(geneList_res_WTvKO_cond2_input_df)[3] <-
-  c("log2FoldChange")
-
-geneList_res_WTvKO_cond2_input_df_input <-
-  geneList_res_WTvKO_cond2_input_df$log2FoldChange
-
-names(geneList_res_WTvKO_cond2_input_df_input) <-
-  geneList_res_WTvKO_cond2_input_df$ENTREZID
-
-geneList_res_WTvKO_cond2_input_df_input <-
-  geneList_res_WTvKO_cond2_input_df_input[order(geneList_res_WTvKO_cond2_input_df_input, decreasing = TRUE)]
-
-gseKEGG_WTvKO_cond2 <-
-  gseKEGG(
-    geneList     = geneList_res_WTvKO_cond2_input_df_input,
-    organism     = 'mmu',
-    # minGSSize    = 120,
-    pvalueCutoff = 0.10,
-    verbose      = TRUE
-  )
+# KEGG_IDs_WTvKO2 <-
+#   KEGG_IDs_WTvKO2[KEGG_IDs_WTvKO2$ENSEMBL %in% names(geneList_res_WTvKO_cond2_input),]
+# 
+# geneList_res_WTvKO_cond2_input_df <-
+#   geneList_res_WTvKO_cond2_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
+# 
+# geneList_res_WTvKO_cond2_input_df <-
+#   merge(KEGG_IDs_WTvKO2,
+#         geneList_res_WTvKO_cond2_input_df,
+#         by = "ENSEMBL")
+# 
+# colnames(geneList_res_WTvKO_cond2_input_df)[3] <-
+#   c("log2FoldChange")
+# 
+# geneList_res_WTvKO_cond2_input_df_input <-
+#   geneList_res_WTvKO_cond2_input_df$log2FoldChange
+# 
+# names(geneList_res_WTvKO_cond2_input_df_input) <-
+#   geneList_res_WTvKO_cond2_input_df$ENTREZID
+# 
+# geneList_res_WTvKO_cond2_input_df_input <-
+#   geneList_res_WTvKO_cond2_input_df_input[order(geneList_res_WTvKO_cond2_input_df_input, decreasing = TRUE)]
+# 
+# gseKEGG_WTvKO_cond2 <-
+#   gseKEGG(
+#     geneList     = geneList_res_WTvKO_cond2_input_df_input,
+#     organism     = 'mmu',
+#     # minGSSize    = 120,
+#     pvalueCutoff = 0.10,
+#     verbose      = TRUE
+#   )
 
 ### WT1vsWT2 ####
 
-KEGG_IDs_WT2vWT1 <-
-  KEGG_IDs_WT2vWT1[KEGG_IDs_WT2vWT1$ENSEMBL %in% names(geneList_res_WT2vsWT1_input),]
-
-geneList_res_WT2vsWT1_input_df <-
-  geneList_res_WT2vsWT1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
-
-geneList_res_WT2vsWT1_input_df <-
-  merge(KEGG_IDs_WT2vWT1,
-        geneList_res_WT2vsWT1_input_df,
-        by = "ENSEMBL")
-
-colnames(geneList_res_WT2vsWT1_input_df)[3] <- c("log2FoldChange")
-
-geneList_res_WT2vsWT1_input_df_input <-
-  geneList_res_WT2vsWT1_input_df$log2FoldChange
-
-names(geneList_res_WT2vsWT1_input_df_input) <-
-  geneList_res_WT2vsWT1_input_df$ENTREZID
-
-geneList_res_WT2vsWT1_input_df_input <-
-  geneList_res_WT2vsWT1_input_df_input[order(geneList_res_WT2vsWT1_input_df_input, decreasing = TRUE)]
-
-gseKEGG_WT2vsWT1 <-
-  gseKEGG(
-    geneList     = geneList_res_WT2vsWT1_input_df_input,
-    organism     = 'mmu',
-    # minGSSize    = 120,
-    pvalueCutoff = 0.10,
-    verbose      = TRUE
-  )
+# KEGG_IDs_WT2vWT1 <-
+#   KEGG_IDs_WT2vWT1[KEGG_IDs_WT2vWT1$ENSEMBL %in% names(geneList_res_WT2vsWT1_input),]
+# 
+# geneList_res_WT2vsWT1_input_df <-
+#   geneList_res_WT2vsWT1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
+# 
+# geneList_res_WT2vsWT1_input_df <-
+#   merge(KEGG_IDs_WT2vWT1,
+#         geneList_res_WT2vsWT1_input_df,
+#         by = "ENSEMBL")
+# 
+# colnames(geneList_res_WT2vsWT1_input_df)[3] <- c("log2FoldChange")
+# 
+# geneList_res_WT2vsWT1_input_df_input <-
+#   geneList_res_WT2vsWT1_input_df$log2FoldChange
+# 
+# names(geneList_res_WT2vsWT1_input_df_input) <-
+#   geneList_res_WT2vsWT1_input_df$ENTREZID
+# 
+# geneList_res_WT2vsWT1_input_df_input <-
+#   geneList_res_WT2vsWT1_input_df_input[order(geneList_res_WT2vsWT1_input_df_input, decreasing = TRUE)]
+# 
+# gseKEGG_WT2vsWT1 <-
+#   gseKEGG(
+#     geneList     = geneList_res_WT2vsWT1_input_df_input,
+#     organism     = 'mmu',
+#     # minGSSize    = 120,
+#     pvalueCutoff = 0.10,
+#     verbose      = TRUE
+#   )
 
 ### KO1vsKO2 ####
 
-KEGG_IDs_KO2vsKO1 <-
-  KEGG_IDs_KO2vsKO1[KEGG_IDs_KO2vsKO1$ENSEMBL %in% names(geneList_res_KO2vsKO1_input),]
-
-geneList_res_KO2vsKO1_input_df <-
-  geneList_res_KO2vsKO1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
-
-geneList_res_KO2vsKO1_input_df <-
-  merge(KEGG_IDs_KO2vsKO1,
-        geneList_res_KO2vsKO1_input_df,
-        by = "ENSEMBL")
-
-colnames(geneList_res_KO2vsKO1_input_df)[3] <- c("log2FoldChange")
-
-geneList_res_KO2vsKO1_input_df_input <-
-  geneList_res_KO2vsKO1_input_df$log2FoldChange
-
-names(geneList_res_KO2vsKO1_input_df_input) <-
-  geneList_res_KO2vsKO1_input_df$ENTREZID
-
-geneList_res_KO2vsKO1_input_df_input <-
-  geneList_res_KO2vsKO1_input_df_input[order(geneList_res_KO2vsKO1_input_df_input, decreasing = TRUE)]
-
-gseKEGG_KO2vsKO1 <-
-  gseKEGG(
-    geneList     = geneList_res_KO2vsKO1_input_df_input,
-    organism     = 'mmu',
-    # minGSSize    = 120,
-    pvalueCutoff = 0.10,
-    verbose      = TRUE
-  )
+# KEGG_IDs_KO2vsKO1 <-
+#   KEGG_IDs_KO2vsKO1[KEGG_IDs_KO2vsKO1$ENSEMBL %in% names(geneList_res_KO2vsKO1_input),]
+# 
+# geneList_res_KO2vsKO1_input_df <-
+#   geneList_res_KO2vsKO1_input %>% as.data.frame() %>% rownames_to_column(var = "ENSEMBL")
+# 
+# geneList_res_KO2vsKO1_input_df <-
+#   merge(KEGG_IDs_KO2vsKO1,
+#         geneList_res_KO2vsKO1_input_df,
+#         by = "ENSEMBL")
+# 
+# colnames(geneList_res_KO2vsKO1_input_df)[3] <- c("log2FoldChange")
+# 
+# geneList_res_KO2vsKO1_input_df_input <-
+#   geneList_res_KO2vsKO1_input_df$log2FoldChange
+# 
+# names(geneList_res_KO2vsKO1_input_df_input) <-
+#   geneList_res_KO2vsKO1_input_df$ENTREZID
+# 
+# geneList_res_KO2vsKO1_input_df_input <-
+#   geneList_res_KO2vsKO1_input_df_input[order(geneList_res_KO2vsKO1_input_df_input, decreasing = TRUE)]
+# 
+# gseKEGG_KO2vsKO1 <-
+#   gseKEGG(
+#     geneList     = geneList_res_KO2vsKO1_input_df_input,
+#     organism     = 'mmu',
+#     # minGSSize    = 120,
+#     pvalueCutoff = 0.10,
+#     verbose      = TRUE
+#   )
 
 ### KEGG Plots ####
 
-pdf(here("processed/02-DESeq2/KEGG-GSEA.pdf"),
+pdf(here("processed/02-DESeq2/KEGG-GSEA_Condition1_only.pdf"),
     height = 8,
     width = 11)
 
@@ -946,43 +955,43 @@ dotplot(
   "Dot Plot of Top KEGG Enriched Pathways in KO vs WT Condition 1 Differential Expression Analysis"
 )
 
-dotplot(
-  gseKEGG_WTvKO_cond2,
-  showCategory = 10,
-  title = "Enriched Pathways" ,
-  split = ".sign"
-) + facet_grid(. ~ .sign) + ggtitle(
-  "Dot Plot of Top KEGG Enriched Pathways in KO vs WT Condition 2 Differential Expression Analysis"
-) # NO Enrichment Terms Found
-
-dotplot(
-  gseKEGG_WT2vsWT1,
-  showCategory = 10,
-  title = "Enriched Pathways" ,
-  split = ".sign"
-) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in WT 2 vs WT 1 Differential Expression Analysis")
-
-dotplot(
-  gseKEGG_KO2vsKO1,
-  showCategory = 10,
-  title = "Enriched Pathways" ,
-  split = ".sign"
-) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in KO 2 vs KO 1 Differential Expression Analysis")
+# dotplot(
+#   gseKEGG_WTvKO_cond2,
+#   showCategory = 10,
+#   title = "Enriched Pathways" ,
+#   split = ".sign"
+# ) + facet_grid(. ~ .sign) + ggtitle(
+#   "Dot Plot of Top KEGG Enriched Pathways in KO vs WT Condition 2 Differential Expression Analysis"
+# ) # NO Enrichment Terms Found
+# 
+# dotplot(
+#   gseKEGG_WT2vsWT1,
+#   showCategory = 10,
+#   title = "Enriched Pathways" ,
+#   split = ".sign"
+# ) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in WT 2 vs WT 1 Differential Expression Analysis")
+# 
+# dotplot(
+#   gseKEGG_KO2vsKO1,
+#   showCategory = 10,
+#   title = "Enriched Pathways" ,
+#   split = ".sign"
+# ) + facet_grid(. ~ .sign) + ggtitle("Dot Plot of Top KEGG Enriched Pathways in KO 2 vs KO 1 Differential Expression Analysis")
 
 graphics.off()
 
 ## Write CSVs for PCA and all enrichment objects
 
 # GO
-write.csv(
-  enrichGO_gene_WT2vsWT1@result,
-  file = here("processed/02-DESeq2/enrichGO_gene_WT2vsWT1_results.csv")
-)
-
-write.csv(
-  enrichGO_gene_KO2vsKO1@result,
-  file = here("processed/02-DESeq2/enrichGO_gene_KO2vsKO1_results.csv")
-)
+# write.csv(
+#   enrichGO_gene_WT2vsWT1@result,
+#   file = here("processed/02-DESeq2/enrichGO_gene_WT2vsWT1_results.csv")
+# )
+# 
+# write.csv(
+#   enrichGO_gene_KO2vsKO1@result,
+#   file = here("processed/02-DESeq2/enrichGO_gene_KO2vsKO1_results.csv")
+# )
 
 write.csv(
   enrichGO_gene_WTvKO_cond1@result,
@@ -991,24 +1000,24 @@ write.csv(
   )
 )
 
-write.csv(
-  enrichGO_gene_WTvKO_cond2@result,
-  file = here(
-    "processed/02-DESeq2/enrichGO_gene_WTvKO_cond2_results.csv"
-  )
-)
+# write.csv(
+#   enrichGO_gene_WTvKO_cond2@result,
+#   file = here(
+#     "processed/02-DESeq2/enrichGO_gene_WTvKO_cond2_results.csv"
+#   )
+# )
 
 # GSEA
 
-write.csv(
-  gsea_gene_WT2vsWT1_sig_genes_tx@result,
-  file = here("processed/02-DESeq2/gsea_gene_WT2vsWT1_sig_genes_tx.csv")
-)
-
-write.csv(
-  gsea_gene_KO2vsKO1_sig_genes_tx@result,
-  file = here("processed/02-DESeq2/gsea_gene_KO2vsKO1_sig_genes_tx.csv")
-)
+# write.csv(
+#   gsea_gene_WT2vsWT1_sig_genes_tx@result,
+#   file = here("processed/02-DESeq2/gsea_gene_WT2vsWT1_sig_genes_tx.csv")
+# )
+# 
+# write.csv(
+#   gsea_gene_KO2vsKO1_sig_genes_tx@result,
+#   file = here("processed/02-DESeq2/gsea_gene_KO2vsKO1_sig_genes_tx.csv")
+# )
 
 write.csv(
   gsea_gene_WTvKO_cond1_sig_genes_tx@result,
@@ -1017,30 +1026,30 @@ write.csv(
   )
 )
 
-write.csv(
-  gsea_gene_WTvKO_cond2_sig_genes_tx@result,
-  file = here(
-    "processed/02-DESeq2/gsea_gene_WTvKO_cond2_sig_genes_tx.csv"
-  )
-)
+# write.csv(
+#   gsea_gene_WTvKO_cond2_sig_genes_tx@result,
+#   file = here(
+#     "processed/02-DESeq2/gsea_gene_WTvKO_cond2_sig_genes_tx.csv"
+#   )
+# )
 
 # KEGG_GSEA
 
-write.csv(gseKEGG_KO2vsKO1@result,
-          file = here("processed/02-DESeq2/gseKEGG_KO2vsKO1.csv"))
-
-write.csv(gseKEGG_WT2vsWT1@result,
-          file = here("processed/02-DESeq2/gseKEGG_WT2vsWT1.csv"))
+# write.csv(gseKEGG_KO2vsKO1@result,
+#           file = here("processed/02-DESeq2/gseKEGG_KO2vsKO1.csv"))
+# 
+# write.csv(gseKEGG_WT2vsWT1@result,
+#           file = here("processed/02-DESeq2/gseKEGG_WT2vsWT1.csv"))
 
 write.csv(
   gseKEGG_WTvKO_cond1@result,
   file = here("processed/02-DESeq2/gseKEGG_WTvKO_cond1.csv")
 )
-
-write.csv(
-  gseKEGG_WTvKO_cond2@result,
-  file = here("processed/02-DESeq2/gseKEGG_WTvKO_cond2.csv")
-)
+# 
+# write.csv(
+#   gseKEGG_WTvKO_cond2@result,
+#   file = here("processed/02-DESeq2/gseKEGG_WTvKO_cond2.csv")
+# )
 
 # PCA
 
@@ -1048,4 +1057,4 @@ pca_table <- plotPCA(rld, intgroup = "group")$data
 
 pca_table$group.1 <- NULL
 
-write.csv(pca_table, file = "pca_table_sans15.csv")
+write.csv(pca_table, file = "pca_table_condition1_only.csv")
