@@ -26,6 +26,8 @@ The input to this pipeline consisted of 16 samples coming from 4 groups, overall
  - "HTS019_15_JH139.M_LB_S15_L001"
  - "HTS019_16_JH139.M_RU_S16_L001"
 
+HTS019_15_JH139.M_LB_S15_L001 was excluded from the differential expression analysis due to exceptionally poor read quality.
+
 More details about the sample metadata can be found in `JHL_44_RNAseq_sample_information.xlsx`
 
 ### MultiQC
